@@ -48,6 +48,10 @@ pub use div::{
 };
 
 mod dropout;
+pub use dropout::{
+    dropout,
+    dropout_wrt_x,
+};  
 
 mod im2col;
 pub use im2col::{
@@ -56,7 +60,10 @@ pub use im2col::{
 };
 
 mod lrn;
-pub use lrn::lrn;
+pub use lrn::{
+    lrn,
+    lrn_wrt_x,
+};
 
 mod matmul;
 pub use matmul::{
