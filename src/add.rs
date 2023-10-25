@@ -1,38 +1,38 @@
 
 #[inline]
 pub unsafe fn add(
-    a: *const f32,
-    b: *const f32,
-    c: *mut f32,
+    x1: *const f32,
+    x2: *const f32,
+    y: *mut f32,
     len: usize,
 ) {
     for i in 0..len {
-        *c.add(i) = *a.add(i) + *b.add(i);
+        *y.add(i) = *x1.add(i) + *x2.add(i);
     }
 }
 
 #[inline]
-pub unsafe fn add_wrt_a(
-    gc: *const f32,
-    ga: *mut f32,
+pub unsafe fn add_wrt_x1(
+    gy: *const f32,
+    g1: *mut f32,
     len: usize,
     beta: f32,
 ) {
     for i in 0..len {
-        let gaptr = ga.add(i);
-        *gaptr = (*gaptr * beta) + *gc.add(i)
+        let gaptr = g1.add(i);
+        *gaptr = (*gaptr * beta) + *gy.add(i)
     }
 }
 
 #[inline]
-pub unsafe fn add_wrt_b(
-    gc: *const f32,
-    gb: *mut f32,
+pub unsafe fn add_wrt_x2(
+    gy: *const f32,
+    g2: *mut f32,
     len: usize,
     beta: f32,
 ) {
     for i in 0..len {
-        let gbptr = gb.add(i);
-        *gbptr = (*gbptr * beta) + *gc.add(i)
+        let gbptr = g2.add(i);
+        *gbptr = (*gbptr * beta) + *gy.add(i)
     }
 }

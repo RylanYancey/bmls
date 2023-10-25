@@ -2,8 +2,8 @@
 mod add;
 pub use add::{
     add,
-    add_wrt_a,
-    add_wrt_b,
+    add_wrt_x1,
+    add_wrt_x2,
 };
 
 mod avg_pool;

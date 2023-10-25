@@ -153,7 +153,6 @@ mod tests {
 
     #[test]
     fn test_max_pool_wrt_a() {
-        let dim_gb = [2, 2];
 
         let gb = [
             1., 2.,
