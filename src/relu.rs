@@ -7,8 +7,8 @@ pub unsafe fn relu(
 ) {
     for i in 0..len {
         let xptr = x.add(i);
-        if *x > 0.0 {
-            *y.add(i) = *x;
+        if *xptr > 0.0 {
+            *y.add(i) = *xptr;
         } else {
             *y.add(i) = 0.;
         }

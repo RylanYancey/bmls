@@ -77,6 +77,10 @@ pub use mul::{
 };
 
 mod reduce_mean;
+pub use reduce_mean::{
+    reduce_mean,
+    reduce_mean_wrt_x,
+};
 
 mod reduce_sum;
 pub use reduce_sum::{
