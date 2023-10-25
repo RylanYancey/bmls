@@ -53,9 +53,6 @@ pub use im2col::{
     im2col_wrt_x,
 };
 
-mod mae;
-pub use mae::mae;
-
 mod matmul;
 pub use matmul::{
     matmul,
@@ -96,7 +93,7 @@ pub use sigmoid::{
 mod softmax;
 pub use softmax::{
     softmax,
-    softmax_wrt_a,
+    softmax_wrt_x,
 };
 
 mod sub;

@@ -1,6 +1,6 @@
 
 /// ## Inputs
-/// - T: Target (N x C)
+/// - T: Truth Label (N x C)
 /// - P: Prediction (N x C)
 /// - E: Error (N x 1) vector
 /// - G: Gradient (N x C)
@@ -16,26 +16,25 @@ pub unsafe fn mse(
     let cols = dim[1];
     
     for i in 0..rows {
-        let t_row = t.offset((i * cols) as isize);
-        let p_row = p.offset((i * cols) as isize);
-        let e_row = e.offset((i * cols) as isize);
-        let g_row = g.offset((i * cols) as isize);
+        let t_row = t.add(i * cols);
+        let p_row = p.add(i * cols);
+        let g_row = g.add(i * cols);
         
         let mut sum = 0.0;
 
         for j in 0..cols {
-            let target_val = *t_row.offset(j as isize);
-            let predicted_val = *p_row.offset(j as isize);
+            let target_val = *t_row.add(j);
+            let predicted_val = *p_row.add(j);
             
             // Calculate the error (e) and gradient (g) for each element
             let error = target_val - predicted_val;
-            let gradient = -2.0 * (predicted_val - target_val);
+            let gradient = 2.0 * error;
             
-            *g_row.offset(j as isize) = gradient;
+            *g_row.add(j) = gradient;
 
             sum += f32::powi(error, 2);
         }
 
-        *e_row = sum / dim[0] as f32;
+        *e.add(i) = sum / dim[0] as f32;
     }
 }
