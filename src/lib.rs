@@ -76,18 +76,24 @@ pub use mul::{
     mul_wrt_b,
 };
 
+mod reduce_mean;
+
 mod reduce_sum;
+pub use reduce_sum::{
+    reduce_sum,
+    reduce_sum_wrt_x,
+};
 
 mod relu;
 pub use relu::{
     relu,
-    relu_wrt_a,
+    relu_wrt_x,
 };
 
 mod sigmoid;
 pub use sigmoid::{
     sigmoid,
-    sigmoid_wrt_a,
+    sigmoid_wrt_x,
 };
 
 mod softmax;

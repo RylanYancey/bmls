@@ -1,5 +1,5 @@
 
-/// # Reduce Sum Operator
+/// # Reduce Mean Operator
 /// - X: Input
 /// - Y: Output
 /// - X_shape: shape of X
@@ -7,7 +7,7 @@
 /// 
 /// Y Shape is the same as X, but with the specified Axis set to 1. 
 #[inline]
-pub unsafe fn reduce_sum(
+pub unsafe fn reduce_mean(
     x: *const f32,
     y: *mut f32,
     x_shape: [usize; 4],
@@ -35,6 +35,8 @@ pub unsafe fn reduce_sum(
                         let xi = i[0] * xd[1] * xd[2] * xd[3] + i[1] * xd[2] * xd[3] + i[2] * xd[3] + i[3];
                         *yptr += *x.add(xi);
                     }
+
+                    *yptr /= xd[axis] as f32;
                 }
             }
         }
@@ -42,7 +44,7 @@ pub unsafe fn reduce_sum(
 }
 
 #[inline]
-pub unsafe fn reduce_sum_wrt_x(
+pub unsafe fn reduce_mean_wrt_x(
     gy: *const f32,
     gx: *mut f32,
     x_shape: [usize; 4],
@@ -52,6 +54,8 @@ pub unsafe fn reduce_sum_wrt_x(
     let xd = x_shape;
     let mut yd = x_shape;
     yd[axis] = 1;
+
+    let len = xd[axis] as f32;
 
     for i in 0..(xd[0] * xd[1] * xd[2] * xd[3]) {
         *gx.add(i) *= beta;
@@ -69,7 +73,7 @@ pub unsafe fn reduce_sum_wrt_x(
                         i[axis] = b;
 
                         let xi = i[0] * xd[1] * xd[2] * xd[3] + i[1] * xd[2] * xd[3] + i[2] * xd[3] + i[3];
-                        *gx.add(xi) += *yptr.add(yi);
+                        *gx.add(xi) += *yptr.add(yi) / len;
                     }
                 }
             }
@@ -79,42 +83,41 @@ pub unsafe fn reduce_sum_wrt_x(
 
 #[cfg(test)]
 mod tests {
-
     use super::*;
 
     #[test]
-    fn test_reduce_sum() {
+    fn test_reduce_mean() {
         let x = vec![1., 2., 3., 4., 5., 6., 7., 8., 9.];
-        let mut y = vec![0.0, 0.0, 0.0];
+        let mut y = vec![0.0; 3];
 
         unsafe {
-            reduce_sum(
+            reduce_mean(
                 x.as_ptr(),
                 y.as_mut_ptr(),
                 [1, 1, 3, 3],
-                3,
+                2,
             );
         }
 
         for i in 0..3 {
-            print!("{} ", y[i])
+            print!("{} ", y[i]);
         }
-        println!("\n");
+        println!("");
 
         //panic!("")
     }
 
     #[test]
-    fn test_reduce_sum_wrt_input() {
+    fn test_reduce_mean_wrt_x() {
         let mut gx = vec![0.0; 9];
-        let gy = vec![6., 15., 24.];
+        let gy = vec![4.0, 5.0, 9.0];
 
         unsafe {
-            reduce_sum_wrt_x(
+            reduce_mean_wrt_x(
                 gy.as_ptr(),
                 gx.as_mut_ptr(),
                 [1, 1, 3, 3],
-                3,
+                2, 
                 1.0,
             )
         }
@@ -127,6 +130,6 @@ mod tests {
         }
         println!("");
 
-        //panic!("")
+        panic!("")
     }
 }
