@@ -35,7 +35,6 @@ pub unsafe fn axis_sub_wrt_a(
     gc: *const f32,
     ga: *mut f32,
     dim: [usize; 4],
-    axis: usize,
     beta: f32,
 ) {
     let len = dim[0] * dim[1] * dim[2] * dim[3];

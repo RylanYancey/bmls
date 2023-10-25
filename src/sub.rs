@@ -7,7 +7,7 @@ pub unsafe fn sub(
     len: usize,
 ) {
     for i in 0..len {
-        *c.add(len) = *a.add(len) - *b.add(len);
+        *c.add(i) = *a.add(i) - *b.add(i);
     }
 }
 

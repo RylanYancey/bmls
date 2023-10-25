@@ -15,6 +15,7 @@ pub use avg_pool::{
 mod axis_add;
 pub use axis_add::{
     axis_add,
+    axis_add_wrt_a,
     axis_add_wrt_b,
 };
 
@@ -35,6 +36,7 @@ pub use axis_mul::{
 mod axis_sub;
 pub use axis_sub::{
     axis_sub,
+    axis_sub_wrt_a,
     axis_sub_wrt_b,
 };
 
@@ -75,12 +77,6 @@ pub use mul::{
     mul,
     mul_wrt_a,
     mul_wrt_b,
-};
-
-mod pad;
-pub use pad::{
-    pad,
-    pad_wrt_a,
 };
 
 mod reduce_sum;

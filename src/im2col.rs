@@ -130,8 +130,6 @@ pub unsafe fn im2col_wrt_x(
 
 #[cfg(test)]
 mod tests {
-    use super::*;
-
     #[test]
     fn im2col() {
         // 4x4 (3 channels)
