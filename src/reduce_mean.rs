@@ -66,14 +66,14 @@ pub unsafe fn reduce_mean_wrt_x(
             for h in 0..yd[2] {
                 for w in 0..yd[3] {
                     let yi = n * yd[1] * yd[2] * yd[3] + c * yd[2] * yd[3] + h * yd[3] + w;
-                    let yptr = gy.add(yi);
+                    let val = *gy.add(yi) / len;
 
                     for b in 0..xd[axis] {
                         let mut i = [n, c, h, w];
                         i[axis] = b;
 
                         let xi = i[0] * xd[1] * xd[2] * xd[3] + i[1] * xd[2] * xd[3] + i[2] * xd[3] + i[3];
-                        *gx.add(xi) += *yptr.add(yi) / len;
+                        *gx.add(xi) += val; 
                     }
                 }
             }
@@ -130,6 +130,6 @@ mod tests {
         }
         println!("");
 
-        panic!("")
+        //panic!("")
     }
 }

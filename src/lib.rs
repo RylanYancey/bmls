@@ -47,11 +47,16 @@ pub use div::{
     div_wrt_b,
 };
 
+mod dropout;
+
 mod im2col;
 pub use im2col::{
     im2col,
     im2col_wrt_x,
 };
+
+mod lrn;
+pub use lrn::lrn;
 
 mod matmul;
 pub use matmul::{
