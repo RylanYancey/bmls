@@ -1,0 +1,106 @@
+
+
+\documentclass{article}
+\usepackage[backend=biber, style=alphabetic,]{biblatex}
+\usepackage{amsmath}
+\usepackage[colorlinks=true, urlcolor=blue, linkcolor=red]{hyperref}
+\addbibresource{docs.bib}
+\setlength{\parskip}{\baselineskip}%
+\setlength{\parindent}{0pt}%
+\title{ML Operators}
+\author{BMLS Team}
+\date{10/1/2023}
+\begin{document}
+    \maketitle
+    \section*{Contributors}
+        \begin{itemize}
+            \item Rylan W. Yancey
+            \item J. Leon Ballentine
+        \end{itemize}
+    \section*{Introduction}
+        This document formally defines the operators bmls implements and their gradients. Tensors are assumed to be Row Major and conform to either
+        the NHCW or NCHW format, where N is batch size, H is features, C is channels, and W is width. 
+
+\noindent\makebox[\linewidth]{\rule{\paperwidth}{0.4pt}}
+    \section{Dot}
+        The Dot operator computes the dot product of two matrices \textbf{A} and \textbf{B}. When \textbf{A} is an M x N 
+        matrix, \textbf{B} is an N x P matrix, the product \textbf{C} is a M x P matrix defined as: 
+        $$\sum_{i=0}^{M}\sum_{j=0}^{P}\boldsymbol{C}_{ij} = \sum_{k=0}^{N} \boldsymbol{A}_{ik}\boldsymbol{B}_{kj}$$
+        Consider the following row-major matrices, where indices start at 0 and 0,0 is the top left. 
+        $$
+            A = \begin{bmatrix}1 & 2 & 3\\ 4 & 5 & 6 \end{bmatrix}
+            B = \begin{bmatrix}1 & 2 \\ 3 & 4 \\ 5 & 6 \end{bmatrix}
+            C = \begin{bmatrix} 22 & 28 \\ 49 & 62\end{bmatrix}
+        $$
+        \textbf{Proposition 1:}
+        The dot product of A and B is denoted $C = A \cdot B$. The definition of an element $C_{ij}$ is the dot product of row vector $A_i$ and column vector $B_j$. 
+        $$C_{ij} = \sum_{k=0}^{N} A_{ik}B_{kj}$$
+        For example, to find $C_{00}$, this formula will expand to:
+        $$C_{00} = A_{00} * B_{00} + A_{01} * B_{10} + A_{02} * B_{20}$$
+        \textbf{Proposition 2:}
+        To find the gradient of C w.r.t. an element of A or B, we will first differentiate the formula defined by proposition 1 by applying the product rule.
+        $$\frac{\delta}{\delta{X}}(\sum_{k=0}^{N}A_{ik} B_{kj}) = \sum_{k=0}^{N} B_{kj} \frac{\delta{A_{ik}}}{\delta{X}} + A_{ik} \frac{\delta{B_{kj}}}{\delta{X}}$$ 
+        Now substitute to find the gradient of $C_{ij}$ w.r.t. $A_{ik}$ and $B_{kj}$. We can remove the summation because we are finding the gradient for an element of X instead of the entire vector X. 
+        $$\frac{\delta}{\delta{A_{ik}}}(A_{ik} B_{kj}) = B_{kj} \frac{\delta{A_{ik}}}{\delta{A_{ik}}} + A_{ik} \frac{\delta{B_{kj}}}{\delta{A_{ik}}} = B_{kj}$$ 
+        $$\frac{\delta}{\delta{B_{kj}}}(A_{ik} B_{kj}) = B_{kj} \frac{\delta{A_{ik}}}{\delta{B_{kj}}} + A_{ik} \frac{\delta{B_{kj}}}{\delta{B_{kj}}} = A_{ik}$$ 
+        In plain english, the gradient of an index with respect to some $C_{ij}$ is the element in the corresponding vector it was multiplied by to get $C_{ij}$.  For example, the gradient
+        of $A_{01}$ w.r.t. $C_{00}$ is $B_{10}$, since $A_{01}$ is multiplied by $B_{10}$ while calculating $C_{00}$. Also, $A_{01}$ was also multiplied by $B_{11}$ while calculating
+        $C_{01}$. Since we know all the elements $A_{01}$ was multiplied by, we can define the gradient of C w.r.t. $A_{01}$ to be $B_{10} + B_{11}$. 
+
+        Take note of the fact that the gradient w.r.t. $A_{01}$ is the sum of the elements of row vector $B_1$. The same logic applies for e.g. the gradient w.r.t. $B_{20}$, which is the sum of 
+        the elements in column vector $A_2$. Therefore, we can define the gradient of C w.r.t. $A_{ik}$ as the sum of the columns of $B_k$ and the gradient of C w.r.t. $A_{kj}$ as the sum of the rows of $A_k$. 
+        $$\frac{\delta}{\delta{A_{ik}}} = \sum_{j=0}^{P} B_{kj}$$
+        $$\frac{\delta}{\delta{B_{kj}}} = \sum_{i=0}^{M} A_{ik}$$
+        \textbf{Proposition 3:}
+        To calculate the gradient w.r.t. A we can take advantage of the axiom that A shares an axis N with B and axis M with C.  
+        We can then take the dot product of some gradient matrix GC and the transpose of B. The same logic applies to the gradient w.r.t. B, 
+        taking advantage of the axiom that B shares an axis N with A and axis P with C. Therefore, we can define the gradients as follows:
+        $$GA = GC \cdot B^T$$ 
+        $$GB = A^T \cdot GC$$
+        Here are those operations written out: 
+        $$GA = \begin{bmatrix} 1 & 1 \\ 1 & 1\end{bmatrix} \cdot \begin{bmatrix}1 & 3 & 5 \\ 2 & 4 & 6 \end{bmatrix} = \begin{bmatrix}3 & 7 & 11 \\ 3 & 7 & 11 \end{bmatrix}$$
+        $$GB = \begin{bmatrix} 1 & 4 \\ 2 & 5 \\ 3 & 6 \end{bmatrix} \cdot \begin{bmatrix} 1 & 1 \\ 1 & 1 \end{bmatrix} = \begin{bmatrix}5 & 5 \\ 7 & 7 \\ 9 & 9 \end{bmatrix}$$
+
+        This satisfies proposition 2, since GA is the sum of the rows of B, and GB is the sum of the rows in A. 
+
+        GC here is the input gradient w.r.t. C. While backpropogating, these may be any value, but for this example case it is an identity matrix. GC is assumed to have the same shape as C.  
+        The output gradient GA has the same dimensions as A, and GB has the same dimensions as B. 
+            
+\noindent\makebox[\linewidth]{\rule{\paperwidth}{0.4pt}}
+    \section{Softmax}
+        The Softmax operator "...converts a vector of length $K$ into a probability distribution of $K$ possible outcomes".\cite{wiki:Softmax_function} This operation
+        is commonly used in classification, to produce a vector of probabilities. 
+        $$\sigma(\overrightarrow{z})_i = \frac{e^{z_i}}{\sum_{j=0}^{K}e^{z_j}}$$
+        In the example below, you can see that the softmax normalized the outputs to a range [0, 1] and the sum of these values is 1.  
+        $$\sigma([1, 2, 3])_i = [0.09, 0.24, 0.67]$$
+        In the following proof, I will refer to the input as $z$ and the output as $w$, both with a length of $K$. 
+
+        \textbf{Proposition 1:}
+        To define $\frac{\delta{w}}{\delta{z}}$ we will first define $\frac{\delta{w_i}}{\delta{z_j}}$, for which we will apply the quotient rule, defined below. 
+        $$\frac{\delta}{\delta{x}}(\frac{u}{v}) = \frac{v\frac{\delta{u}}{\delta{x}} - u\frac{\delta{v}}{\delta{x}}}{v^2}$$
+        Now we run into a problem. We want to substitute $z_j$ for $x$, but we will get different answers for $i\ne j$ and $i=j$. First, lets' define the $i=j$ case. For simplicity, $\Sigma$ = $\sum_{j=0}^{K}e^{z_j}$.
+        $$\frac{\delta{w_i}}{\delta{z_i}}(\sigma)_i = \frac{\Sigma \frac{\delta{e^{z_i}}}{\delta{z_i}} 
+        - e^{z_i}\frac{\delta{\Sigma}}{\delta{z_i}}}{\Sigma^2} = \frac{e^{z_i}\Sigma - e^{z_i}e^{z_i}}{\Sigma^2}$$
+        Simplify to an easier form. 
+        $$= \frac{e^{z_i}}{\Sigma} \frac{\Sigma - e^{z_i}}{\Sigma} = \sigma_i(1 - \sigma_i)$$
+
+        \textbf{Proposition 2:}
+        In proposition 1 we defined $\frac{\delta{w_i}}{\delta{z_j}}$ when $i=j$, so now let us define the $i\ne j$ case. We will again apply the quotient rule.
+        $$\frac{\delta{w_i}}{\delta{z_j}}(\sigma) = \frac{0- e^{z_i}\frac{\delta{\Sigma}}{\delta{z_i}}}{\Sigma^2} = \frac{-e^{z_j}e^{z_i}}{\Sigma^2} = 
+        -\frac{e^{z_j}}{\Sigma} \frac{e^{z_i}}{\Sigma} = -\sigma_j \sigma_i$$
+
+        Therefore, we can define $\frac{\delta{w_i}}{\delta{z_j}}$ as follows:
+        \[ 
+        \begin{cases} 
+            i=j & \sigma_i(1 - \sigma_j) \\
+            i\ne j & -\sigma_j \sigma_i
+        \end{cases}
+        \]
+
+        \textbf{Usage in BMLS:}
+        
+
+\noindent\makebox[\linewidth]{\rule{\paperwidth}{0.4pt}}
+    \printbibliography
+
+\end{document}
