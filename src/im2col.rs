@@ -44,7 +44,7 @@ pub unsafe fn im2col(
                                 let col = (h * wstart + w) * (m + 1);
                                 let yi = row * cy + col;
 
-                                if xrow >= hx as isize || xrow < 0 || xcol >= cx as isize || xcol < 0 {
+                                if xrow >= hx as isize || xrow < 0 || xcol >= wx as isize || xcol < 0 {
                                     *y.add(yi) = 0.0;
                                     continue;
                                 }
@@ -112,7 +112,7 @@ pub unsafe fn im2col_wrt_x(
                                 let col = (h * wstart + w) * (m + 1);
                                 let yi = row * cy + col;
 
-                                if xrow > hx as isize || xrow < 0 || xcol > cx as isize || xcol < 0 {
+                                if xrow >= hx as isize || xrow < 0 || xcol >= wx as isize || xcol < 0 {
                                     continue;
                                 }
 
@@ -157,6 +157,6 @@ mod tests {
         }
         println!("");
 
-        panic!("");
+        //panic!("");
     }
 }

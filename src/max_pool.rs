@@ -1,83 +1,101 @@
 
-/// - A: Input
-/// - B: Output
-/// - I: Index of max value in a patch
-/// - Dim: Dimensions of A. 
-/// - Strides: Distance between patches
-/// - Kernel: Size of the Kernel
-/// - Dilations: Amount to dilate. Cannot be Zero. 
+/// # Max Pool Operation
+/// - X: Input
+/// - Y: Output
+/// - I: Indices of max vals in X (for backprop)
+/// - X_dim: dimensions of X
+/// - Kernel: HxW of the Kernel
+/// - Stride: H and W strides of the Kernel
+/// - Padh: Height Padding
+/// - Padw: Width Padding
 /// 
-/// B Should have the height: (input_rows - kernel_rows) / (stride_rows * dilation_rows) + 1
-/// B should have the width: (input_cols - kernel_cols) / (stride_cols * dilation_cols) + 1
+/// The batches and channels of Y are the same as X. \
+/// The height of Y: ((xh - kh + (padh.0 + padh.1)) / strideh) + 1 \
+/// The width  of Y: ((xw - kw + (padw.0 + padw.1)) / stridew) + 1
 #[inline]
 pub unsafe fn max_pool(
-    a: *const f32,
-    b: *mut f32,
+    x: *const f32,
+    y: *mut f32,
     i: *mut usize,
-    dim: [usize; 2],
-    strides: [usize; 2],
+    x_dim: [usize; 4],
     kernel: [usize; 2],
-    dilations: [usize; 2],
+    stride: [usize; 2],
+    padh: [usize; 2],
+    padw: [usize; 2],
 ) {
-    let input_rows = dim[0];
-    let input_cols = dim[1];
-    let kernel_rows = kernel[0];
-    let kernel_cols = kernel[1];
-    let stride_rows = strides[0];
-    let stride_cols = strides[1];
-    let dilation_rows = dilations[0];
-    let dilation_cols = dilations[1];
-    let output_rows = (input_rows - kernel_rows) / (stride_rows * dilation_rows) + 1;
-    let output_cols = (input_cols - kernel_cols) / (stride_cols * dilation_cols) + 1;
+    let (strideh, stridew) = (stride[0], stride[1]);
+    let (kernelh, kernelw) = (kernel[0], kernel[1]);
+    let (xn, xc, xh, xw) = (x_dim[0], x_dim[1], x_dim[2], x_dim[3]);
 
-    for out_row in 0..output_rows {
-        for out_col in 0..output_cols {
-            let patch_start_row = out_row * stride_rows;
-            let patch_start_col = out_col * stride_cols;
-            let patch_end_row = patch_start_row + kernel_rows;
-            let patch_end_col = patch_start_col + kernel_cols;
+    let hstart = ((x_dim[2] - kernelh + (padh[0] + padh[1])) / strideh) + 1;
+    let wstart = ((x_dim[3] - kernelw + (padw[0] + padw[1])) / stridew) + 1;
 
-            let mut max_val = std::f32::NEG_INFINITY;
-            let mut max_idx = 0;
+    let (_, yc, yh, yw) = (x_dim[0], x_dim[1], hstart, wstart);
 
-            for row in patch_start_row..patch_end_row {
-                for col in patch_start_col..patch_end_col {
+    for n in 0..xn {
+        for c in 0..xc {
+            for h in 0..hstart {
+                for w in 0..wstart {
 
-                    let dh = (row - patch_start_row) * (dilation_rows - 1);
-                    let dw = (col - patch_start_col) * (dilation_cols - 1);
+                    let mut max = f32::MIN;
+                    let mut index = 0;
 
-                    let index = (row + dh) * input_cols + (col + dw);
-                    let val = *a.offset(index as isize);
+                    for kh in 0..kernelh {
+                        for kw in 0..kernelw {
 
-                    if val > max_val {
-                        max_val = val;
-                        max_idx = index;
+                            let xrow = ((h * strideh) + kh) as isize - padh[0] as isize;
+                            let xcol = ((w * stridew) + kw) as isize - padw[0] as isize;
+
+                            if xrow >= xh as isize || xrow < 0 || xcol >= xw as isize || xcol < 0 {
+                                if max < 0.0 {
+                                    max = 0.0;
+                                    index = usize::MAX;
+                                }
+                                continue;
+                            }
+
+                            let xi = n * xc * xh * xw + c * xh * xw + xrow as usize * xw + xcol as usize; 
+                            let val = *x.add(xi);
+                            if val > max {
+                                max = val;
+                                index = xi;
+                            }
+                        }
                     }
+
+                    let yi = n * yc * yh * yw + c * yh * yw + h * yw + w;
+                    *y.add(yi) = max;
+                    *i.add(yi) = index;
                 }
             }
-
-            let output_index = out_row * output_cols + out_col;
-            *b.offset(output_index as isize) = max_val;
-            *i.offset(output_index as isize) = max_idx;
         }
     }
 }
 
 /// - I: Indices of max values, returned in forward op.
-/// - GB: Gradient w.r.t. output B.
-/// - GA: Gradient w.r.t. input A. 
-/// - Dim: Dimensions of GB. 
+/// - GY: Gradient w.r.t. output Y.
+/// - GX: Gradient w.r.t. input X. 
+/// - Dim: Dimensions of GY. 
 #[inline]
 pub unsafe fn max_pool_wrt_a(
     i: *const usize,
-    gb: *const f32,
-    ga: *mut f32,
-    dim: [usize; 2],
+    gy: *const f32,
+    gx: *mut f32,
+    y_dim: [usize; 4],
+    beta: f32,
 ) {
-    let len = dim[0] * dim[1];
+    let len = y_dim[0] * y_dim[1] * y_dim[2] * y_dim[3];
 
     for n in 0..len {
-        *ga.add(*i.add(n)) += *gb.add(n); 
+        *gx.add(n) *= beta;
+    }
+
+    for n in 0..len {
+        let i = *i.add(n);
+
+        if i != usize::MAX {
+            *gx.add(i) += *gy.add(n);
+        } 
     }
 }
 
@@ -96,43 +114,36 @@ mod tests {
             13.0, 14.0, 15.0, 16.0,
         ];
 
-        // Dimensions of the input matrix
-        let dim = [4, 4];
-
-        // Pooling parameters
-        let strides = [2, 2];
-        let kernel = [2, 2];
-        let dilations = [1, 1];
-
         // Create vectors to hold the pooled values and their indices
-        let mut pooled_output: Vec<f32> = vec![0.0; 4];
-        let mut max_indices: Vec<usize> = vec![0; 4];
+        let mut pooled_output: Vec<f32> = vec![0.0; 25];
+        let mut max_indices: Vec<usize> = vec![0; 25];
 
         unsafe {
             max_pool(
                 input.as_ptr(),
                 pooled_output.as_mut_ptr(),
                 max_indices.as_mut_ptr(),
-                dim,
-                strides,
-                kernel,
-                dilations,
+                [1, 1, 4, 4],
+                [2, 2],
+                [1, 1],
+                [1, 1],
+                [1, 1],
             );
         }
 
         // Compare the calculated pooled values and max indices with the expected values
-        for i in 0..2 {
+        for i in 0..5 {
             println!("");
-            for j in 0..2 {
-                print!("{} ",pooled_output[i * 2 + j]);
+            for j in 0..5 {
+                print!("{} ",pooled_output[i * 5 + j]);
             }
         }
         println!("\n");
 
-        for i in 0..2 {
+        for i in 0..5 {
             println!("");
-            for j in 0..2 {
-                print!("{} ", max_indices[i * 2 + j]);
+            for j in 0..5 {
+                print!("{} ", max_indices[i * 5 + j]);
             }
         }
         println!("\n");
@@ -168,7 +179,8 @@ mod tests {
                 indices.as_ptr(), 
                 gb.as_ptr(), 
                 ga.as_mut_ptr(), 
-                dim_gb
+                [1, 1, 2, 2],
+                0.0,
             )
         }
 

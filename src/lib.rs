@@ -9,7 +9,7 @@ pub use add::{
 mod avg_pool;
 pub use avg_pool::{
     avg_pool,
-    avg_pool_wrt_a,
+    avg_pool_wrt_x,
 };
 
 mod axis_add;

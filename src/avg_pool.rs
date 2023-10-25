@@ -1,4 +1,5 @@
 
+/// # Avg Pooling Operation
 /// - A: Input
 /// - B: Output
 /// - Dim: Dimensions of A. 
@@ -10,51 +11,55 @@
 /// B should have the width: (input_cols - kernel_cols) / (stride_cols * dilation_cols) + 1
 #[inline]
 pub unsafe fn avg_pool(
-    a: *const f32,
-    b: *mut f32,
-    dim: [usize; 2],
-    strides: [usize; 2],
+    x: *const f32,
+    y: *mut f32,
+    x_dim: [usize; 4],
+    stride: [usize; 2],
     kernel: [usize; 2],
-    dilations: [usize; 2],
+    padh: [usize; 2],
+    padw: [usize; 2],
 ) {
-    let input_rows = dim[0];
-    let input_cols = dim[1];
-    let kernel_rows = kernel[0];
-    let kernel_cols = kernel[1];
-    let stride_rows = strides[0];
-    let stride_cols = strides[1];
-    let dilation_rows = dilations[0];
-    let dilation_cols = dilations[1];
-    let output_rows = (input_rows - kernel_rows) / (stride_rows * dilation_rows) + 1;
-    let output_cols = (input_cols - kernel_cols) / (stride_cols * dilation_cols) + 1;
+    let (strideh, stridew) = (stride[0], stride[1]);
+    let (kernelh, kernelw) = (kernel[0], kernel[1]);
+    let (xn, xc, xh, xw) = (x_dim[0], x_dim[1], x_dim[2], x_dim[3]);
 
-    for out_row in 0..output_rows {
-        for out_col in 0..output_cols {
-            let patch_start_row = out_row * stride_rows;
-            let patch_start_col = out_col * stride_cols;
-            let patch_end_row = patch_start_row + kernel_rows;
-            let patch_end_col = patch_start_col + kernel_cols;
+    let hstart = ((x_dim[2] - kernelh + (padh[0] + padh[1])) / strideh) + 1;
+    let wstart = ((x_dim[3] - kernelw + (padw[0] + padw[1])) / stridew) + 1;
 
-            let mut sum = 0.0;
+    let (_, yc, yh, yw) = (x_dim[0], x_dim[1], hstart, wstart);
 
-            for row in patch_start_row..patch_end_row {
-                for col in patch_start_col..patch_end_col {
+    let k_len = kernelh * kernelw;
 
-                    let dh = (row - patch_start_row) * (dilation_rows - 1);
-                    let dw = (col - patch_start_col) * (dilation_cols - 1);
+    for n in 0..xn {
+        for c in 0..xc {
+            for h in 0..hstart {
+                for w in 0..wstart {
 
-                    let index = (row + dh) * input_cols + (col + dw);
-                    let val = *a.offset(index as isize);
-                    sum += val;
+                    let mut sum = 0.0;
+
+                    for kh in 0..kernelh {
+                        for kw in 0..kernelw {
+
+                            let xrow = ((h * strideh) + kh) as isize - padh[0] as isize;
+                            let xcol = ((w * stridew) + kw) as isize - padw[0] as isize;
+
+                            if xrow >= xh as isize || xrow < 0 || xcol >= xw as isize || xcol < 0 {
+                                continue;
+                            }
+
+                            let xi = n * xc * xh * xw + c * xh * xw + xrow as usize * xw + xcol as usize; 
+                            sum += *x.add(xi);
+                        }
+                    }
+                    let yi = n * yc * yh * yw + c * yh * yw + h * yw + w;
+                    *y.add(yi) = sum / k_len as f32;
                 }
             }
-
-            let output_index = out_row * output_cols + out_col;
-            *b.offset(output_index as isize) = sum / (kernel_rows * kernel_cols) as f32;
         }
     }
 }
 
+/// Avg Pooling w.r.t. X
 /// - GB: Output Gradient
 /// - GA: Input Gradient
 /// - Dim: Dimensions of A
@@ -67,43 +72,47 @@ pub unsafe fn avg_pool(
 /// 
 /// GA is expected to be zeroed. 
 #[inline]
-pub unsafe fn avg_pool_wrt_a(
-    gb: *const f32,
-    ga: *mut f32,
-    dim: [usize; 2],
-    strides: [usize; 2],
+pub unsafe fn avg_pool_wrt_x(
+    gy: *const f32,
+    gx: *mut f32,
+    x_dim: [usize; 4],
+    stride: [usize; 2],
     kernel: [usize; 2],
-    dilations: [usize; 2],
+    padh: [usize; 2],
+    padw: [usize; 2],
 ) {
-    let rows = dim[0];
-    let cols = dim[1];
-    let kernel_rows = kernel[0];
-    let kernel_cols = kernel[1];
-    let stride_rows = strides[0];
-    let stride_cols = strides[1];
-    let dilation_rows = dilations[0];
-    let dilation_cols = dilations[1];
-    let output_rows = (rows - kernel_rows) / (stride_rows * dilation_rows) + 1;
-    let output_cols = (cols - kernel_cols) / (stride_cols * dilation_cols) + 1;
+    let (strideh, stridew) = (stride[0], stride[1]);
+    let (kernelh, kernelw) = (kernel[0], kernel[1]);
+    let (xn, xc, xh, xw) = (x_dim[0], x_dim[1], x_dim[2], x_dim[3]);
 
-    for out_row in 0..output_rows {
-        for out_col in 0..output_cols {
-            let patch_start_row = out_row * stride_rows;
-            let patch_start_col = out_col * stride_cols;
-            let patch_end_row = patch_start_row + kernel_rows;
-            let patch_end_col = patch_start_col + kernel_cols;
+    let hstart = ((x_dim[2] - kernelh + (padh[0] + padh[1])) / strideh) + 1;
+    let wstart = ((x_dim[3] - kernelw + (padw[0] + padw[1])) / stridew) + 1;
 
-            let gradient = *gb.offset((out_row * output_cols + out_col) as isize);
-            let average = gradient / (kernel_rows * kernel_cols) as f32;
+    let (_, yc, yh, yw) = (x_dim[0], x_dim[1], hstart, wstart);
 
-            for row in patch_start_row..patch_end_row {
-                for col in patch_start_col..patch_end_col {
+    let k_len = kernelh * kernelw;
 
-                    let dh = (row - patch_start_row) * (dilation_rows - 1);
-                    let dw = (col - patch_start_col) * (dilation_cols - 1);
+    for n in 0..xn {
+        for c in 0..xc {
+            for h in 0..hstart {
+                for w in 0..wstart {
 
-                    let index = (row + dh) * cols + (col + dw);
-                    *ga.offset(index as isize) += average;
+                    let yi = n * yc * yh * yw + c * yh * yw + h * yw + w;
+
+                    for kh in 0..kernelh {
+                        for kw in 0..kernelw {
+
+                            let xrow = ((h * strideh) + kh) as isize - padh[0] as isize;
+                            let xcol = ((w * stridew) + kw) as isize - padw[0] as isize;
+
+                            if xrow >= xh as isize || xrow < 0 || xcol >= xw as isize || xcol < 0 {
+                                continue;
+                            }
+
+                            let xi = n * xc * xh * xw + c * xh * xw + xrow as usize * xw + xcol as usize; 
+                            *gx.add(xi) += *gy.add(yi) / k_len as f32;
+                        }
+                    }
                 }
             }
         }
@@ -125,32 +134,25 @@ mod tests {
             13.0, 14.0, 15.0, 16.0,
         ];
     
-        // Dimensions of the input matrix
-        let dim = [4, 4];
-    
-        // Pooling parameters
-        let strides = [1, 1];
-        let kernel = [2, 2];
-        let dilations = [2, 2];
-    
         // Create a vector to hold the pooled values
-        let mut pooled_output: Vec<f32> = vec![0.0; 4];
+        let mut pooled_output: Vec<f32> = vec![0.0; 25];
     
         unsafe {
             avg_pool(
                 input.as_ptr(),
                 pooled_output.as_mut_ptr(),
-                dim,
-                strides,
-                kernel,
-                dilations,
+                [1, 1, 4, 4],
+                [1, 1],
+                [2, 2],
+                [1, 1],
+                [1, 1],
             );
         }
     
-        for i in 0..2 {
+        for i in 0..5 {
             println!("");
-            for j in 0..2 {
-                print!("{} ", pooled_output[i * 2 + j]);
+            for j in 0..5 {
+                print!("{} ", pooled_output[i * 5 + j]);
             }
         }
         println!("");
@@ -160,28 +162,21 @@ mod tests {
 
     #[test]
     fn test_avg_pool_wrt_a() {
-        // Dimensions of the input matrix a (4x4)
-        let input_dim = [4, 4];
-    
-        // Pooling parameters
-        let strides = [2, 2];
-        let kernel = [2, 2];
-        let dilations = [1, 1];
-    
         // Create a vector to hold the gradient values (gb) for the output
         let gradient_output: Vec<f32> = vec![1.0, 2.0, 3.0, 4.0];
     
         // Create a vector to hold the gradient with respect to the input (ga)
-        let mut gradient_input: Vec<f32> = vec![0.0; 16]; // 4x4 input matrix
+        let mut gradient_input: Vec<f32> = vec![1.0; 16]; // 4x4 input matrix
     
         unsafe {
-            avg_pool_wrt_a(
+            avg_pool_wrt_x(
                 gradient_output.as_ptr(),
                 gradient_input.as_mut_ptr(),
-                input_dim,
-                strides,
-                kernel,
-                dilations,
+                [1, 1, 4, 4],
+                [2, 2],
+                [1, 1],
+                [0, 0],
+                [0, 0],
             );
         }
     
