@@ -12,13 +12,14 @@ pub unsafe fn reduce_sum(
     y: *mut f32,
     x_shape: [usize; 4],
     axis: usize,
+    beta: f32,
 ) {
     let xd = x_shape;
     let mut yd = x_shape;
     yd[axis] = 1;
 
     for i in 0..(yd[0] * yd[1] * yd[2] * yd[3]) {
-        *y.add(i) = 0.0;
+        *y.add(i) *= beta;
     }
 
     for n in 0..yd[0] {
@@ -41,6 +42,11 @@ pub unsafe fn reduce_sum(
     }
 }
 
+/// # Reduce Sum W.r.t. X
+/// - GY: Gradient w.r.t. output Y
+/// - GX: Gradient w.r.t. Input X
+/// - X_shape: Shape of X in the forward op.
+/// - Axis: The Axis reduces in the forward op.
 #[inline]
 pub unsafe fn reduce_sum_wrt_x(
     gy: *const f32,
@@ -93,6 +99,7 @@ mod tests {
                 y.as_mut_ptr(),
                 [1, 1, 3, 3],
                 3,
+                0.0,
             );
         }
 

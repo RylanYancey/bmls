@@ -3,8 +3,21 @@ name = "bmls"
 version = "0.1.0"
 edition = "2021"
 
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
-
 [dependencies]
 fastrand = "2.0.1"
 matrixmultiply = "0.3.8"
+
+[dev-dependencies]
+criterion = { version = "0.4", features = ["html_reports"] }
+
+[[bench]]
+name = "reduce_sum"
+harness = false
+
+[[bench]]
+name = "reduce_mean"
+harness = false
+
+[[bench]]
+name = "lrn"
+harness = false

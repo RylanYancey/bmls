@@ -31,9 +31,9 @@
         are assumed to be NC, Rank 3 are assumed to be CHW, and Rank 4 are assumed to be NCHW. 
 
         \paragraph{Design Patterns}
-        All operations provided by BMLS have a forward operation \verb|name()| and a backwards operation \verb|name_wrt_x()| for each 
-        differentiable input. Operation inputs are \verb|a|, \verb|b|, \verb|c|, etc, and gradients are denoted \verb|ga|, \verb|gb|, etc.
-        Inputs are always \verb|*const| and outputs are always \verb|*mut|.
+        All operations provided by BMLS have a forward operation \verb|name()| and a backwards operation \verb|name_wrt_xn()| for each 
+        differentiable input. Operation inputs are \verb|x1|, \verb|x2|, \verb|x3|, etc, followed by an output \verb|y| and gradients are denoted 
+        \verb|g1|, \verb|g2|, etc. Inputs are always \verb|*const| and outputs are always \verb|*mut|.
     
         \paragraph{Features}
         BMLS provides element wise operators, activation functions, higher rank operators, loss functions, and gradients for all. 

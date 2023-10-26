@@ -1,4 +1,59 @@
 
+
+use std::time::{SystemTime, UNIX_EPOCH};
+
+use criterion::{black_box, criterion_group, criterion_main, Criterion};
+
+fn criterion_benchmark(c: &mut Criterion) {
+    c.bench_function("reduce_mean_v1", |b| b.iter(|| {
+
+        let t = 
+            SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .unwrap()
+            .as_nanos() % 4;
+            
+        // 10 x 10 x 10 x 10
+        let x: Vec<f32> = black_box((0..10*10*10*10).map(|i| i as f32).collect());
+        // 10 x 10 x 10
+        let mut y: Vec<f32> = black_box((0..10*10*10).map(|i| i as f32).collect());
+
+        unsafe {
+            reduce_mean_v1(
+                x.as_ptr(),
+                y.as_mut_ptr(),
+                [10, 10, 10, 10],
+                t as usize,
+                0.0,
+            )
+        }
+    }));
+
+    c.bench_function("reduce_mean_wrt_x_v1", |b| b.iter(|| {
+
+        let t = 
+            SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .unwrap()
+            .as_nanos() % 4;
+            
+        // 10 x 10 x 10 x 10
+        let mut gx: Vec<f32> = black_box((0..10*10*10*10).map(|i| i as f32).collect());
+        // 10 x 10 x 10
+        let gy: Vec<f32> = black_box((0..10*10*10).map(|i| i as f32).collect());
+
+        unsafe {
+            reduce_mean_wrt_x_v1(
+                gy.as_ptr(),
+                gx.as_mut_ptr(),
+                [10, 10, 10, 10],
+                t as usize,
+                0.0,
+            )
+        }
+    }));
+}
+
 /// # Reduce Mean Operator
 /// - X: Input
 /// - Y: Output
@@ -7,7 +62,7 @@
 /// 
 /// Y Shape is the same as X, but with the specified Axis set to 1. 
 #[inline]
-pub unsafe fn reduce_mean(
+pub unsafe fn reduce_mean_v1(
     x: *const f32,
     y: *mut f32,
     x_shape: [usize; 4],
@@ -51,7 +106,7 @@ pub unsafe fn reduce_mean(
 /// - Axis: Axis to be reduced
 /// - Beta: scaling factor for y. 
 #[inline]
-pub unsafe fn reduce_mean_wrt_x(
+pub unsafe fn reduce_mean_wrt_x_v1(
     gy: *const f32,
     gx: *mut f32,
     x_shape: [usize; 4],
@@ -88,56 +143,5 @@ pub unsafe fn reduce_mean_wrt_x(
     }
 }
 
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn test_reduce_mean() {
-        let x = vec![1., 2., 3., 4., 5., 6., 7., 8., 9.];
-        let mut y = vec![0.0; 3];
-
-        unsafe {
-            reduce_mean(
-                x.as_ptr(),
-                y.as_mut_ptr(),
-                [1, 1, 3, 3],
-                2,
-                0.0,
-            );
-        }
-
-        for i in 0..3 {
-            print!("{} ", y[i]);
-        }
-        println!("");
-
-        //panic!("")
-    }
-
-    #[test]
-    fn test_reduce_mean_wrt_x() {
-        let mut gx = vec![0.0; 9];
-        let gy = vec![4.0, 5.0, 9.0];
-
-        unsafe {
-            reduce_mean_wrt_x(
-                gy.as_ptr(),
-                gx.as_mut_ptr(),
-                [1, 1, 3, 3],
-                2, 
-                1.0,
-            )
-        }
-
-        for row in 0..3 {
-            println!("");
-            for col in 0..3 {
-                print!("{} ", gx[row * 3 + col]);
-            }
-        }
-        println!("");
-
-        //panic!("")
-    }
-}
+criterion_group!(benches, criterion_benchmark);
+criterion_main!(benches);

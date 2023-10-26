@@ -1,38 +1,53 @@
 
+/// # Subtraction Operation
+/// - X1: Left Operand
+/// - X2: Right Operand
+/// - Y: Output
+/// - Len: Length of X1, X2, and Y. 
 #[inline]
 pub unsafe fn sub(
-    a: *const f32,
-    b: *const f32,
-    c: *mut f32,
+    x1: *const f32,
+    x2: *const f32,
+    y: *mut f32,
     len: usize,
 ) {
     for i in 0..len {
-        *c.add(i) = *a.add(i) - *b.add(i);
+        *y.add(i) = *x1.add(i) - *x2.add(i);
     }
 }
 
+/// # Subtraction W.r.t. A
+/// - GY: Gradient w.r.t. Output Y
+/// - G1: Gradient W.r.t. Input X1
+/// - Len: Length of GY, G1. 
+/// - Beta: Scaling factor for g1. 
 #[inline]
 pub unsafe fn sub_wrt_a(
-    gc: *const f32,
-    ga: *mut f32,
+    gy: *const f32,
+    g1: *mut f32,
     len: usize,
     beta: f32,
 ) {
     for i in 0..len {
-        let gaptr = ga.add(i);
-        *gaptr = (*gaptr * beta) + *gc.add(i)
+        let g1ptr = g1.add(i);
+        *g1ptr = (*g1ptr * beta) + *gy.add(i)
     }
 }
 
+/// # Subtraction w.r.t. B
+/// - GY: Gradient w.r.t. Output Y
+/// - G2: Gradient w.r.t. Input X2
+/// - Len: Length of GY, G2, 
+/// - Beta: Scaling factor for G2. 
 #[inline]
 pub unsafe fn sub_wrt_b(
-    gc: *const f32,
-    gb: *mut f32,
+    gy: *const f32,
+    g2: *mut f32,
     len: usize,
     beta: f32,
 ) {
     for i in 0..len {
-        let gbptr = gb.add(i);
-        *gbptr = (*gbptr * beta) - *gc.add(i)
+        let g2ptr = g2.add(i);
+        *g2ptr = (*g2ptr * beta) - *gy.add(i)
     }
 }
