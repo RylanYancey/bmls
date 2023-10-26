@@ -19,13 +19,15 @@
 \contentsline {section}{\numberline {2.8}Axis Div}{8}{section.2.8}%
 \contentsline {paragraph}{Gradient w.r.t. B}{8}{section*.9}%
 \contentsline {paragraph}{Gradient w.r.t. A}{8}{section*.10}%
-\contentsline {chapter}{\numberline {3}Activation Operators}{9}{chapter.3}%
-\contentsline {section}{\numberline {3.1}Sigmoid}{9}{section.3.1}%
-\contentsline {section}{\numberline {3.2}Softmax}{9}{section.3.2}%
-\contentsline {chapter}{\numberline {4}Higher Rank Operators}{11}{chapter.4}%
-\contentsline {section}{\numberline {4.1}Matmul}{11}{section.4.1}%
-\contentsline {chapter}{\numberline {5}Loss Functions}{13}{chapter.5}%
-\contentsline {section}{\numberline {5.1}MSE}{13}{section.5.1}%
-\contentsline {paragraph}{Gradient}{13}{section*.11}%
-\contentsline {section}{\numberline {5.2}MAE}{13}{section.5.2}%
+\contentsline {section}{\numberline {2.9}Dropout}{8}{section.2.9}%
+\contentsline {paragraph}{Gradient w.r.t. A}{9}{section*.11}%
+\contentsline {chapter}{\numberline {3}Activation Operators}{10}{chapter.3}%
+\contentsline {section}{\numberline {3.1}Sigmoid}{10}{section.3.1}%
+\contentsline {section}{\numberline {3.2}Softmax}{10}{section.3.2}%
+\contentsline {chapter}{\numberline {4}Higher Rank Operators}{12}{chapter.4}%
+\contentsline {section}{\numberline {4.1}Matmul}{12}{section.4.1}%
+\contentsline {chapter}{\numberline {5}Loss Functions}{14}{chapter.5}%
+\contentsline {section}{\numberline {5.1}MSE}{14}{section.5.1}%
 \contentsline {paragraph}{Gradient}{14}{section*.12}%
+\contentsline {section}{\numberline {5.2}MAE}{14}{section.5.2}%
+\contentsline {paragraph}{Gradient}{15}{section*.13}%

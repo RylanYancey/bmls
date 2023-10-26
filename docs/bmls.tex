@@ -195,6 +195,23 @@
             Applying the same logic, we can conclude that the gradient w.r.t. $A_{ij}$ is the value in $B$ it was multiplied by.
             $$\frac{\delta}{\delta{A_{ij}}}(\frac{A_{ij}}{B_i}) = \frac{1}{B_i}$$
 
+        \section{Dropout}
+            The Dropout Operator is used to prevent overfitting.  It does this by randomly selecting $\alpha$ percentage of values to set
+            to zero. $\alpha$ is a hyperparameter that can be tuned, but is usually set between 0.5 and 0.2. In pure math, with $r$ representing
+            a random value between 0 and 1,
+            \[ \begin{cases} 
+                0 & r < \alpha \\
+                x\frac{1}{1 - \alpha} & r \ge \alpha \\
+             \end{cases}
+            \]
+            When $r > \alpha$, we scale $x$ up by a factor of $x\frac{1}{1 - \alpha}$. In practice, this prevents neurons from finding
+            relationships between neurons that are not significant, which tends to happen when networks are larger than they need to be or there
+            is insufficient data. During test or inference, the dropout layer is turned off. 
+
+            \paragraph{Gradient w.r.t. A}
+            During backpropogation, gradients at locations which were set to 0 during the forward operation are also zeroed, and otherwise the gradients
+            are scaled up by a factor of $g\frac{1}{1 - \alpha}$.
+
     \chapter{Activation Operators}
 
         \section{Sigmoid}
