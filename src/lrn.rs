@@ -30,18 +30,22 @@ pub unsafe fn lrn(
         for c in 0..cx {
             for h in 0..hx {
                 for w in 0..wx {
+                    // index of Y to assign to
                     let yi = n * cx * hx * wx + c * hx * wx + h * wx + w;
                     let mut sum = 0.0;
 
+                    // If Inter-channel Normalization is selected, iterate the channels.
                     if inter {
                         // clamp the channel iterator to between 0, cx
                         let citer = (isize::max(0, c as isize - n_size as isize) as usize)..=usize::min(cx, c + n_size);
 
                         // take the sum of the squares
                         for ic in citer {
+                            // index of X to add to the sum. 
                             let xi = n * cx * hx * wx + ic * hx * wx + h * wx + w;
                             sum += f32::powi(*x.add(xi), 2);
                         }
+                    // if Intra-channel normalization is selected, iterate the H and W.
                     } else {
                         // clamp the iterators between 0 and the hx or wx, respectively.
                         let hiter = (isize::max(0, h as isize - n_size as isize) as usize)..=usize::min(hx, h + n_size);
@@ -50,6 +54,7 @@ pub unsafe fn lrn(
                         // take the sum of the squares
                         for ih in hiter {
                             for iw in witer.clone() {
+                                // index of X to add to the sum. 
                                 let xi = n * cx * hx * wx + c * hx * wx + ih * wx + iw;
                                 sum += f32::powi(*x.add(xi), 2);
                             }
