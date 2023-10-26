@@ -12,7 +12,7 @@ pub unsafe fn div(
 }
 
 #[inline]
-pub unsafe fn div_wrt_a(
+pub unsafe fn div_wrt_x1(
     x2: *const f32,
     gy: *const f32,
     g1: *mut f32,
@@ -26,7 +26,7 @@ pub unsafe fn div_wrt_a(
 }
 
 #[inline]
-pub unsafe fn div_wrt_b(
+pub unsafe fn div_wrt_x2(
     x1: *const f32,
     x2: *const f32,
     gy: *const f32,

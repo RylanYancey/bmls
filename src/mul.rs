@@ -16,14 +16,14 @@ pub unsafe fn mul(
     }
 }
 
-/// # Multiplication W.r.t. A
+/// # Multiplication W.r.t. X1
 /// - X2: Input 2 in the forward op.
 /// - GY: Gradient w.r.t. Output Y
 /// - G1: Gradient W.r.t. Input X1
 /// - Len: Length of GY, G1. 
 /// - Beta: Scaling factor for g1. 
 #[inline]
-pub unsafe fn mul_wrt_a(
+pub unsafe fn mul_wrt_x1(
     x2: *const f32,
     gy: *const f32,
     g1: *mut f32,
@@ -36,14 +36,14 @@ pub unsafe fn mul_wrt_a(
     }
 }
 
-/// # Multiplication w.r.t. B
+/// # Multiplication w.r.t. X2
 /// - X1: Input 1 in the forward op.
 /// - GY: Gradient w.r.t. Output Y
 /// - G2: Gradient w.r.t. Input X2
 /// - Len: Length of GY, G2, 
 /// - Beta: Scaling factor for G2. 
 #[inline]
-pub unsafe fn mul_wrt_b(
+pub unsafe fn mul_wrt_x2(
     x1: *const f32,
     gy: *const f32,
     g2: *mut f32,

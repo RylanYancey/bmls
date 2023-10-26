@@ -43,8 +43,8 @@ pub use axis_sub::{
 mod div;
 pub use div::{
     div,
-    div_wrt_a,
-    div_wrt_b,
+    div_wrt_x1,
+    div_wrt_x2,
 };
 
 mod dropout;
@@ -84,8 +84,8 @@ pub use mse::mse;
 mod mul;
 pub use mul::{
     mul,
-    mul_wrt_a,
-    mul_wrt_b,
+    mul_wrt_x1,
+    mul_wrt_x2,
 };
 
 mod reduce_mean;
@@ -121,6 +121,6 @@ pub use softmax::{
 mod sub;
 pub use sub::{
     sub,
-    sub_wrt_a,
-    sub_wrt_b,
+    sub_wrt_x1,
+    sub_wrt_x2,
 };
