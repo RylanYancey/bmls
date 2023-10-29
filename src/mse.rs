@@ -4,12 +4,14 @@
 /// - P: Prediction (N x C)
 /// - E: Error (N x 1) vector
 /// - G: Gradient (N x C)
+/// - R: Regularization Penalty
 #[inline]
 pub unsafe fn mse(
     t: *const f32,
     p: *const f32,
     e: *mut f32,
     g: *mut f32,
+    r: f32,
     dim: [usize; 2],
 ) {
     let rows = dim[0];
@@ -27,7 +29,7 @@ pub unsafe fn mse(
             let predicted_val = *p_row.add(j);
             
             // Calculate the error (e) and gradient (g) for each element
-            let error = target_val - predicted_val;
+            let error = r + (target_val - predicted_val);
             let gradient = 2.0 * error;
             
             *g_row.add(j) = gradient;
