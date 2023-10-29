@@ -1,4 +1,7 @@
 
+use rayon::prelude::*;
+use super::{Ptr, PtrMut};
+
 /// # Im2col Operation
 /// - X: Input
 /// - Y: Output
@@ -29,19 +32,34 @@ pub unsafe fn im2col(
     // size of the output Y
     let (_, cy) = (hf * wf * cf, hstart * wstart * nf * nx);
 
-    for n in 0..nx {
+    let x = Ptr::new(x);
+    let y = PtrMut::new(y);
+
+    (0..nx).into_par_iter().for_each(|n| {
         for h in 0..hstart {
             for w in 0..wstart {
-                for c in 0..cx {
-                    for m in 0..nf {
-                        for kh in 0..hf {
-                            for kw in 0..wf {
+                // 4% improvement swapping
+                // the order of m and c. 
+                for m in 0..nf {
+                    // moved from inner loop to here
+                    let col = (h * wstart + w) * (m + 1);
+                    for c in 0..cx {
+                        // moving index calculations out of
+                        // inner loop rendered 30% improvement.
+                        let xrow = h * strideh;
+                        let xcol = w * stridew;
+                        let row = wf * hf * c;
+                        let xi =  n * cx * hx * wx + c * hx * wx;
 
-                                let xrow = ((h * strideh) + kh) as isize - padh[0] as isize;
-                                let xcol = ((w * stridew) + kw) as isize - padw[0] as isize;
+                        // swapping the order of the kernel iteration
+                        // rendererd a 16% improvement.
+                        for kw in 0..wf {
+                            for kh in 0..hf {
 
-                                let row = (kh * wf + kw) + (wf * hf * c);
-                                let col = (h * wstart + w) * (m + 1);
+                                let xrow = (xrow + kh) as isize - padh[0] as isize;
+                                let xcol = (xcol + kw) as isize - padw[0] as isize;
+
+                                let row = (kh * wf + kw) + row;
                                 let yi = row * cy + col;
 
                                 if xrow >= hx as isize || xrow < 0 || xcol >= wx as isize || xcol < 0 {
@@ -49,7 +67,7 @@ pub unsafe fn im2col(
                                     continue;
                                 }
 
-                                let xi = n * cx * hx * wx + c * hx * wx + xrow as usize * wx + xcol as usize; 
+                                let xi = xi + xrow as usize * wx + xcol as usize; 
 
                                 *y.add(yi) = *x.add(xi);
                             }
@@ -58,7 +76,7 @@ pub unsafe fn im2col(
                 }
             }
         }
-    }
+    })
 }
 
 /// # Im2col w.r.t. X
@@ -97,26 +115,33 @@ pub unsafe fn im2col_wrt_x(
         *gx.add(i) *= beta;
     }
 
-    for n in 0..nx {
+    let gy = Ptr::new(gy);
+    let gx = PtrMut::new(gx);
+
+    (0..nx).into_par_iter().for_each(|n| {
         for h in 0..hstart {
             for w in 0..wstart {
-                for c in 0..cx {
-                    for m in 0..nf {
+                for m in 0..nf {
+                    let col = (h * wstart + w) * (m + 1);
+                    for c in 0..cx {
+                        let xrow = h * strideh;
+                        let xcol = w * stridew;
+                        let row = wf * hf * c;
+                        let xi =  n * cx * hx * wx + c * hx * wx;
                         for kh in 0..hf {
                             for kw in 0..wf {
 
-                                let xrow = ((h * strideh) + kh) as isize - padh[0] as isize;
-                                let xcol = ((w * stridew) + kw) as isize - padw[0] as isize;
+                                let xrow = (xrow + kh) as isize - padh[0] as isize;
+                                let xcol = (xcol + kw) as isize - padw[0] as isize;
 
-                                let row = (kh * wf + kw) + (wf * hf * c);
-                                let col = (h * wstart + w) * (m + 1);
+                                let row = (kh * wf + kw) + row;
                                 let yi = row * cy + col;
 
                                 if xrow >= hx as isize || xrow < 0 || xcol >= wx as isize || xcol < 0 {
                                     continue;
                                 }
 
-                                let xi = n * cx * hx * wx + c * hx * wx + xrow as usize * wx + xcol as usize; 
+                                let xi = xi + xrow as usize * wx + xcol as usize; 
 
                                 *gx.add(xi) += *gy.add(yi);
                             }
@@ -125,9 +150,8 @@ pub unsafe fn im2col_wrt_x(
                 }
             }
         }
-    }
+    })
 }
-
 #[cfg(test)]
 mod tests {
     #[test]

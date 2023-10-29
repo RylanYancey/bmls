@@ -6,6 +6,7 @@ edition = "2021"
 [dependencies]
 fastrand = "2.0.1"
 matrixmultiply = "0.3.8"
+rayon = "1.8.0"
 
 [dev-dependencies]
 criterion = { version = "0.4", features = ["html_reports"] }
@@ -20,4 +21,12 @@ harness = false
 
 [[bench]]
 name = "lrn"
+harness = false
+
+[[bench]]
+name = "im2col"
+harness = false
+
+[[bench]]
+name = "avg_pool"
 harness = false

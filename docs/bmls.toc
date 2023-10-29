@@ -26,8 +26,9 @@
 \contentsline {section}{\numberline {3.2}Softmax}{10}{section.3.2}%
 \contentsline {chapter}{\numberline {4}Higher Rank Operators}{12}{chapter.4}%
 \contentsline {section}{\numberline {4.1}Matmul}{12}{section.4.1}%
-\contentsline {chapter}{\numberline {5}Loss Functions}{14}{chapter.5}%
-\contentsline {section}{\numberline {5.1}MSE}{14}{section.5.1}%
-\contentsline {paragraph}{Gradient}{14}{section*.12}%
-\contentsline {section}{\numberline {5.2}MAE}{14}{section.5.2}%
-\contentsline {paragraph}{Gradient}{15}{section*.13}%
+\contentsline {section}{\numberline {4.2}LRN}{14}{section.4.2}%
+\contentsline {chapter}{\numberline {5}Loss Functions}{15}{chapter.5}%
+\contentsline {section}{\numberline {5.1}MSE}{15}{section.5.1}%
+\contentsline {paragraph}{Gradient}{15}{section*.12}%
+\contentsline {section}{\numberline {5.2}MAE}{15}{section.5.2}%
+\contentsline {paragraph}{Gradient}{16}{section*.13}%

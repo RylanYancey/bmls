@@ -47,6 +47,7 @@ dependencies = [
  "criterion",
  "fastrand",
  "matrixmultiply",
+ "rayon",
 ]
 
 [[package]]

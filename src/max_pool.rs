@@ -1,4 +1,7 @@
 
+use rayon::prelude::*;
+use super::{Ptr, PtrMut};
+
 /// # Max Pool Operation
 /// - X: Input
 /// - Y: Output
@@ -32,7 +35,11 @@ pub unsafe fn max_pool(
 
     let (_, yc, yh, yw) = (x_dim[0], x_dim[1], hstart, wstart);
 
-    for n in 0..xn {
+    let x = Ptr::new(x);
+    let y = PtrMut::new(y);
+    let i = PtrMut::new(i);
+
+    (0..xn).into_par_iter().for_each(|n| {
         for c in 0..xc {
             for h in 0..hstart {
                 for w in 0..wstart {
@@ -69,7 +76,7 @@ pub unsafe fn max_pool(
                 }
             }
         }
-    }
+    })
 }
 
 /// - I: Indices of max values, returned in forward op.

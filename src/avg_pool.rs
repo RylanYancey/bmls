@@ -1,4 +1,7 @@
 
+use rayon::prelude::*;
+use super::{Ptr, PtrMut};
+
 /// # Avg Pooling Operation
 /// - A: Input
 /// - B: Output
@@ -7,8 +10,8 @@
 /// - Kernel: Size of the Kernel
 /// - Dilations: Amount to dilate. Cannot be Zero. 
 /// 
-/// B Should have the height: (input_rows - kernel_rows) / (stride_rows * dilation_rows) + 1
-/// B should have the width: (input_cols - kernel_cols) / (stride_cols * dilation_cols) + 1
+/// B Should have the height: ((input_rows - kernel_rows + (padh0 + padh1)) / stride_rows) + 1
+/// B should have the width: ((input_cols - kernel_cols + (padw0 + padw1)) / stride_cols) + 1
 #[inline]
 pub unsafe fn avg_pool(
     x: *const f32,
@@ -30,33 +33,34 @@ pub unsafe fn avg_pool(
 
     let k_len = kernelh * kernelw;
 
-    for n in 0..xn {
+    let x = Ptr::new(x);
+    let y = PtrMut::new(y);
+
+    (0..xn).into_par_iter().for_each(|n| {
         for c in 0..xc {
             for h in 0..hstart {
+                let xrow = h * strideh;
+                let xi = n * xc * xh * xw + c * xh * xw;
                 for w in 0..wstart {
-
+                    let yi = n * yc * yh * yw + c * yh * yw + h * yw + w;
+                    let xcol = w * stridew;
                     let mut sum = 0.0;
-
                     for kh in 0..kernelh {
+                        let xrow = (xrow + kh) as isize - padh[0] as isize;
                         for kw in 0..kernelw {
-
-                            let xrow = ((h * strideh) + kh) as isize - padh[0] as isize;
-                            let xcol = ((w * stridew) + kw) as isize - padw[0] as isize;
-
+                            let xcol = (xcol + kw) as isize - padw[0] as isize;
                             if xrow >= xh as isize || xrow < 0 || xcol >= xw as isize || xcol < 0 {
                                 continue;
                             }
-
-                            let xi = n * xc * xh * xw + c * xh * xw + xrow as usize * xw + xcol as usize; 
+                            let xi = xi + xrow as usize * xw + xcol as usize; 
                             sum += *x.add(xi);
                         }
                     }
-                    let yi = n * yc * yh * yw + c * yh * yw + h * yw + w;
                     *y.add(yi) = sum / k_len as f32;
                 }
             }
         }
-    }
+    })
 }
 
 /// Avg Pooling w.r.t. X
@@ -67,8 +71,8 @@ pub unsafe fn avg_pool(
 /// - Kernel: Size of the Kernel
 /// - Dilations: Amount to dilate. Cannot be Zero.
 /// 
-/// B Should have the height: (input_rows - kernel_rows) / (stride_rows * dilation_rows) + 1
-/// B should have the width: (input_cols - kernel_cols) / (stride_cols * dilation_cols) + 1
+/// GB Should have the height: ((input_rows - kernel_rows + (padh0 + padh1)) / stride_rows) + 1
+/// GB should have the width: ((input_cols - kernel_cols + (padw0 + padw1)) / stride_cols) + 1
 /// 
 /// GA is expected to be zeroed. 
 #[inline]
@@ -92,31 +96,32 @@ pub unsafe fn avg_pool_wrt_x(
 
     let k_len = kernelh * kernelw;
 
-    for n in 0..xn {
+    let gy = Ptr::new(gy);
+    let gx = PtrMut::new(gx);
+
+    (0..xn).into_par_iter().for_each(|n| {
         for c in 0..xc {
             for h in 0..hstart {
+                let xrow = h * strideh;
+                let xi = n * xc * xh * xw + c * xh * xw;
                 for w in 0..wstart {
-
                     let yi = n * yc * yh * yw + c * yh * yw + h * yw + w;
-
+                    let xcol = w * stridew;
                     for kh in 0..kernelh {
+                        let xrow = (xrow + kh) as isize - padh[0] as isize;
                         for kw in 0..kernelw {
-
-                            let xrow = ((h * strideh) + kh) as isize - padh[0] as isize;
-                            let xcol = ((w * stridew) + kw) as isize - padw[0] as isize;
-
+                            let xcol = (xcol + kw) as isize - padw[0] as isize;
                             if xrow >= xh as isize || xrow < 0 || xcol >= xw as isize || xcol < 0 {
                                 continue;
                             }
-
-                            let xi = n * xc * xh * xw + c * xh * xw + xrow as usize * xw + xcol as usize; 
+                            let xi = xi + xrow as usize * xw + xcol as usize; 
                             *gx.add(xi) += *gy.add(yi) / k_len as f32;
                         }
                     }
                 }
             }
         }
-    }
+    })
 }
 
 #[cfg(test)]

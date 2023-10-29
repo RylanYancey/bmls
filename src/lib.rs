@@ -1,4 +1,7 @@
 
+mod adam;
+pub use adam::*;
+
 mod add;
 pub use add::{
     add,
@@ -78,6 +81,9 @@ pub use max_pool::{
     max_pool_wrt_a,
 };
 
+mod momentum;
+pub use momentum::momentum;
+
 mod mse;
 pub use mse::mse;
 
@@ -87,6 +93,9 @@ pub use mul::{
     mul_wrt_x1,
     mul_wrt_x2,
 };
+
+mod ptr;
+pub use ptr::*;
 
 mod reduce_mean;
 pub use reduce_mean::{
@@ -105,6 +114,9 @@ pub use relu::{
     relu,
     relu_wrt_x,
 };
+
+mod sgd;
+pub use sgd::sgd;
 
 mod sigmoid;
 pub use sigmoid::{
