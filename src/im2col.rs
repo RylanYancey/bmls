@@ -109,7 +109,7 @@ pub unsafe fn im2col_wrt_x(
     let hstart = ((hx - hf + (padh[0] + padh[1])) / strideh) + 1;
     let wstart = ((wx - wf + (padw[0] + padw[1])) / stridew) + 1;
     // size of the output Y
-    let (_, cy) = (hf * wf * cf, hstart * wstart * nf * nx);
+    let (_, cy) = (hf * wf * cf, hstart * wstart * nx);
 
     for i in 0..(nx * cx * hx * wx) {
         *gx.add(i) *= beta;
