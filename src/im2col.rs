@@ -13,7 +13,7 @@ use super::{Ptr, PtrMut};
 /// 
 /// Y Height: fc * fh * fw
 /// 
-/// Y Width: (((xh - fh + (padh.0 + padh.1)) / strideh) + 1) * (((xw - fw + (padw.0 + padw.1)) / stridew) + 1) * fn * xn
+/// Y Width: (((xh - fh + (padh.0 + padh.1)) / strideh) + 1) * (((xw - fw + (padw.0 + padw.1)) / stridew) + 1) * xn
 #[inline]
 pub unsafe fn im2col(
     x: *const f32,
@@ -30,7 +30,7 @@ pub unsafe fn im2col(
     let hstart = ((hx - hf + (padh[0] + padh[1])) / strideh) + 1;
     let wstart = ((wx - wf + (padw[0] + padw[1])) / stridew) + 1;
     // size of the output Y
-    let (_, cy) = (hf * wf * cf, hstart * wstart * nf * nx);
+    let (_, cy) = (hf * wf * cf, hstart * wstart * nx);
 
     let x = Ptr::new(x);
     let y = PtrMut::new(y);
