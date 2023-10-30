@@ -91,7 +91,7 @@ pub unsafe fn im2col(
 /// 
 /// GY Height: fc * fh * fw
 /// 
-/// GY Width: (((xh - fh + (padh.0 + padh.1)) / strideh) + 1) * (((xw - fw + (padw.0 + padw.1)) / stridew) + 1) * fn * xn
+/// GY Width: (((xh - fh + (padh.0 + padh.1)) / strideh) + 1) * (((xw - fw + (padw.0 + padw.1)) / stridew) + 1) * xn
 #[inline]
 pub unsafe fn im2col_wrt_x(
     gy: *const f32,

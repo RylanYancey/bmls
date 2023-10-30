@@ -73,6 +73,7 @@ pub use matmul::{
     matmul,
     matmul_wrt_a,
     matmul_wrt_b,
+    transpose,
 };
 
 mod max_pool;
