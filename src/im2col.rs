@@ -152,6 +152,7 @@ pub unsafe fn im2col_wrt_x(
         }
     })
 }
+
 #[cfg(test)]
 mod tests {
     #[test]

@@ -55,20 +55,19 @@ pub unsafe fn softmax_wrt_x(
         
         for j in 0..cols {
             let softmax_val = *y_row.add(j);
-            let gradient_b = *gy_row.add(j);
             
             let mut sum = 0.0;
             for k in 0..cols {
                 if j == k {
-                    sum += gradient_b * (softmax_val * (1.0 - softmax_val));
+                    sum += softmax_val * (1.0 - softmax_val);
                 } else {
                     let other_softmax_val = *y_row.add(k);
-                    sum += gradient_b * (-other_softmax_val * softmax_val);
+                    sum += -other_softmax_val * softmax_val;
                 }
             }
             
             let gaij = g1_row.add(j);
-            *gaij = (*gaij * beta) + sum;
+            *gaij = (*gaij * beta) + (sum * *gy_row.add(j));
         }
     }
 }

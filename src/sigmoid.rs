@@ -33,3 +33,28 @@ pub unsafe fn sigmoid_wrt_x(
         *gxptr = (*gxptr * beta) + (*gy.add(i) * (*y.add(i) * (1. - *y.add(i))));
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_sigmoid() {
+        let a = vec![1.,2.,3.,4.,5.,];
+        let mut x = vec![0.0; 5];
+
+        unsafe {
+            sigmoid(
+                a.as_ptr(),
+                x.as_mut_ptr(),
+                5,
+            );
+        }
+
+        for i in 0..5 {
+            println!("{}", x[i]);
+        }
+
+        panic!("");
+    }
+}
