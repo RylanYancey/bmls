@@ -1,6 +1,8 @@
 
 use rayon::prelude::*;
 use super::{Ptr, PtrMut};
+use crate::error::BMLSError;
+use crate::error;
 
 /// # Max Pool Operation
 /// - X: Input
@@ -16,16 +18,16 @@ use super::{Ptr, PtrMut};
 /// The height of Y: ((xh - kh + (padh.0 + padh.1)) / strideh) + 1 \
 /// The width  of Y: ((xw - kw + (padw.0 + padw.1)) / stridew) + 1
 #[inline]
-pub unsafe fn max_pool(
-    x: *const f32,
-    y: *mut f32,
-    i: *mut usize,
+pub fn max_pool(
+    x: &[f32],
+    y: &mut [f32],
+    i: &mut [usize],
     x_dim: [usize; 4],
     kernel: [usize; 2],
     stride: [usize; 2],
     padh: [usize; 2],
     padw: [usize; 2],
-) {
+) -> Result<(), BMLSError> {
     let (strideh, stridew) = (stride[0], stride[1]);
     let (kernelh, kernelw) = (kernel[0], kernel[1]);
     let (xn, xc, xh, xw) = (x_dim[0], x_dim[1], x_dim[2], x_dim[3]);
@@ -35,9 +37,39 @@ pub unsafe fn max_pool(
 
     let (_, yc, yh, yw) = (x_dim[0], x_dim[1], hstart, wstart);
 
-    let x = Ptr::new(x);
-    let y = PtrMut::new(y);
-    let i = PtrMut::new(i);
+    // ensure the length of slice X is the same as its shape
+    let xlen = x_dim[0]*x_dim[1]*x_dim[2]*x_dim[3];
+    if x.len() != xlen {
+        return error::length_mismatch("X", x.len(), "X_dim", xlen)
+    }
+
+    // ensure the length of slice Y is the same as its shape
+    let ylen = xn * yc * yh * yw;
+    if y.len() != ylen {
+        return error::length_mismatch("Y", y.len(), "Y_dim", ylen);
+    }
+
+    // ensure the length of I is the same as Y
+    if i.len() != y.len() {
+        return error::length_mismatch("I", i.len(), "Y", y.len())
+    }
+
+    // the kernel dimensions cannot be 0 or greater than 
+    // the dimensions of the input + the padding.
+    if kernel[0] == 0 || kernel[0] >= (xh+padh[0]+padh[1]) || 
+       kernel[1] == 0 || kernel[1] >= (xw+padw[0]+padw[1]) 
+    {
+        return error::invalid_kernel_dim([1, 1, kernelh, kernelw])
+    }
+
+    // strides must not be 0
+    if strideh == 0 || stridew == 0 {
+        return error::invalid_strides(strideh, stridew)
+    }
+
+    let x = Ptr::new(x.as_ptr());
+    let y = PtrMut::new(y.as_mut_ptr());
+    let i = PtrMut::new(i.as_mut_ptr());
 
     (0..xn).into_par_iter().for_each(|n| {
         for c in 0..xc {
@@ -76,34 +108,31 @@ pub unsafe fn max_pool(
                 }
             }
         }
-    })
+    });
+
+    Ok(())
 }
 
 /// - I: Indices of max values, returned in forward op.
 /// - GY: Gradient w.r.t. output Y.
 /// - GX: Gradient w.r.t. input X. 
-/// - Dim: Dimensions of GY. 
 #[inline]
-pub unsafe fn max_pool_wrt_a(
-    i: *const usize,
-    gy: *const f32,
-    gx: *mut f32,
-    y_dim: [usize; 4],
-    beta: f32,
-) {
-    let len = y_dim[0] * y_dim[1] * y_dim[2] * y_dim[3];
-
-    for n in 0..len {
-        *gx.add(n) *= beta;
+pub fn max_pool_wrt_a(
+    i: &[usize],
+    gy: &[f32],
+    gx: &mut [f32],
+) -> Result<(), BMLSError> {
+    if i.len() != gy.len() {
+        return error::length_mismatch("I", i.len(), "GY", gy.len())
     }
 
-    for n in 0..len {
-        let i = *i.add(n);
-
-        if i != usize::MAX {
-            *gx.add(i) += *gy.add(n);
+    for n in 0..gy.len() {
+        if i[n] != usize::MAX {
+            gx[i[n]] += gy[n];
         } 
     }
+
+    Ok(())
 }
 
 #[cfg(test)]
@@ -125,18 +154,16 @@ mod tests {
         let mut pooled_output: Vec<f32> = vec![0.0; 25];
         let mut max_indices: Vec<usize> = vec![0; 25];
 
-        unsafe {
             max_pool(
-                input.as_ptr(),
-                pooled_output.as_mut_ptr(),
-                max_indices.as_mut_ptr(),
+                &input,
+                &mut pooled_output,
+                &mut max_indices,
                 [1, 1, 4, 4],
                 [2, 2],
                 [1, 1],
                 [1, 1],
                 [1, 1],
-            );
-        }
+            ).unwrap();
 
         // Compare the calculated pooled values and max indices with the expected values
         for i in 0..5 {
@@ -180,15 +207,11 @@ mod tests {
             13, 10, 
         ];
 
-        unsafe {
             max_pool_wrt_a(
-                indices.as_ptr(), 
-                gb.as_ptr(), 
-                ga.as_mut_ptr(), 
-                [1, 1, 2, 2],
-                0.0,
-            )
-        }
+                &indices, 
+                &gb, 
+                &mut ga,
+            ).unwrap();
 
         for i in 0..4 {
             println!("");

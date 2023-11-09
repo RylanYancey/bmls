@@ -1,53 +1,67 @@
 
+use itertools::izip;
+use crate::error::BMLSError;
+use crate::error;
+
 /// # Subtraction Operation
 /// - X1: Left Operand
 /// - X2: Right Operand
 /// - Y: Output
-/// - Len: Length of X1, X2, and Y. 
 #[inline]
-pub unsafe fn sub(
-    x1: *const f32,
-    x2: *const f32,
-    y: *mut f32,
-    len: usize,
-) {
-    for i in 0..len {
-        *y.add(i) = *x1.add(i) - *x2.add(i);
+pub fn sub(
+    x1: &[f32],
+    x2: &[f32],
+    y: &mut [f32],
+) -> Result<(), BMLSError> {
+    if x1.len() != x2.len() {
+        return error::length_mismatch("X2", x1.len(), "X2", x2.len())
     }
+
+    if x2.len() != y.len() {
+        return error::length_mismatch("X2", x2.len(), "Y", y.len())
+    }
+
+    for (x1, x2, y) in izip!(x1, x2, y) {
+        *y = *x1 - *x2; 
+    }
+
+    Ok(())
 }
 
 /// # Subtraction W.r.t. X1
 /// - GY: Gradient w.r.t. Output Y
-/// - G1: Gradient W.r.t. Input X1
-/// - Len: Length of GY, G1. 
-/// - Beta: Scaling factor for g1. 
+/// - G1: Gradient W.r.t. Input X1 
 #[inline]
-pub unsafe fn sub_wrt_x1(
-    gy: *const f32,
-    g1: *mut f32,
-    len: usize,
-    beta: f32,
-) {
-    for i in 0..len {
-        let g1ptr = g1.add(i);
-        *g1ptr = (*g1ptr * beta) + *gy.add(i)
+pub fn sub_wrt_x1(
+    gy: &[f32],
+    g1: &mut [f32]
+) -> Result<(), BMLSError> {
+    if gy.len() != g1.len() {
+        return error::length_mismatch("GY", gy.len(), "G1", g1.len())
     }
+
+    for (gy, g1) in izip!(gy, g1) {
+        *g1 += *gy;
+    }
+
+    Ok(())
 }
 
 /// # Subtraction w.r.t. X2
 /// - GY: Gradient w.r.t. Output Y
-/// - G2: Gradient w.r.t. Input X2
-/// - Len: Length of GY, G2, 
-/// - Beta: Scaling factor for G2. 
+/// - G2: Gradient w.r.t. Input X2 
 #[inline]
-pub unsafe fn sub_wrt_x2(
-    gy: *const f32,
-    g2: *mut f32,
-    len: usize,
-    beta: f32,
-) {
-    for i in 0..len {
-        let g2ptr = g2.add(i);
-        *g2ptr = (*g2ptr * beta) - *gy.add(i)
+pub fn sub_wrt_x2(
+    gy: &[f32],
+    g2: &mut [f32]
+) -> Result<(), BMLSError> {
+    if gy.len() != g2.len() {
+        return error::length_mismatch("GY", gy.len(), "G2", g2.len())
     }
+
+    for (gy, g2) in izip!(gy, g2) {
+        *g2 -= *gy;
+    }
+
+    Ok(())
 }

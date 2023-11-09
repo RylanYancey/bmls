@@ -1,12 +1,21 @@
 
+use itertools::izip;
+use crate::error::BMLSError;
+use crate::error;
+
 #[inline]
-pub unsafe fn sgd(
-    g: *const f32,
-    w: *mut f32,
+pub fn sgd(
+    g: &[f32],
+    w: &mut [f32],
     lr: f32,
-    len: usize,
-) {
-    for i in 0..len {
-        *w.add(i) -= *g.add(i) * lr
+) -> Result<(), BMLSError> {
+    if g.len() != w.len() {
+        return error::length_mismatch("G", g.len(), "W", w.len())
     }
+
+    for (g, w) in izip!(g, w) {
+        *w -= *g * lr
+    }
+
+    Ok(())
 }

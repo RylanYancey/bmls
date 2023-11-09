@@ -1,6 +1,8 @@
 
 use rayon::prelude::*;
 use super::{Ptr, PtrMut};
+use crate::error::BMLSError;
+use crate::error;
 
 /// # Local Response Normalization
 /// - X: Input
@@ -18,20 +20,33 @@ use super::{Ptr, PtrMut};
 /// 
 /// X and Y should have the same shape. 
 #[inline]
-pub unsafe fn lrn(
-    x: *const f32,
-    y: *mut f32,
+pub fn lrn(
+    x: &[f32],
+    y: &mut [f32],
     x_dim: [usize; 4],
     n_size: usize,
     alpha: f32,
     beta: f32,
     k: f32,
     inter: bool,
-) {
+) -> Result<(), BMLSError> {
     let (nx, cx, hx, wx) = (x_dim[0], x_dim[1], x_dim[2], x_dim[3]);
 
-    let x = Ptr::new(x);
-    let y = PtrMut::new(y);
+    let len = nx*cx*hx*wx;
+    if x.len() != len {
+        return error::length_mismatch("X", x.len(), "X_Dim", len);
+    }
+
+    if y.len() != x.len() {
+        return error::length_mismatch("Y", y.len(), "X", x.len());
+    }
+
+    if n_size == 0 {
+        return error::invalid_lrn_size(n_size);
+    }
+
+    let x = Ptr::new(x.as_ptr());
+    let y = PtrMut::new(y.as_mut_ptr());
 
     (0..nx).into_par_iter().for_each(|n| {
         for c in 0..cx {
@@ -78,6 +93,8 @@ pub unsafe fn lrn(
             }
         }
     });
+
+    Ok(())
 }
 
 #[inline]
@@ -102,18 +119,16 @@ mod tests {
 
         let mut y = x.clone();
 
-        unsafe {
             lrn(
-                x.as_ptr(),
-                y.as_mut_ptr(),
+                &x,
+                &mut y,
                 [1, 4, 3, 3],
                 1,
                 1.0,
                 1.0,
                 0.0,
                 true,
-            )
-        }
+            ).unwrap();
 
         for c in 0..4 {
             println!("\n");
@@ -140,18 +155,15 @@ mod tests {
 
         let mut y = x.clone();
 
-        unsafe {
             lrn(
-                x.as_ptr(),
-                y.as_mut_ptr(),
+                &x, &mut y,
                 [1, 1, 5, 5],
                 1, 
                 1.0,
                 1.0,
                 0.0,
                 false,
-            )
-        }
+            ).unwrap();
 
         for h in 0..5 {
             println!("");

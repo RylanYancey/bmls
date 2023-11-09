@@ -3,11 +3,8 @@ use itertools::izip;
 use crate::error::BMLSError;
 use crate::error;
 
-/// # Sigmoid Operation
-/// - X: Input
-/// - Y: Output
 #[inline]
-pub fn sigmoid(
+pub fn tanh(
     x: &[f32],
     y: &mut [f32]
 ) -> Result<(), BMLSError> {
@@ -16,18 +13,17 @@ pub fn sigmoid(
     }
 
     for (x, y) in izip!(x, y) {
-        *y = 1. / (1. + f32::exp(-*x))
+        let posex = f32::exp(*x);
+        let negex = f32::exp(-*x);
+        // y = (e^z - e^-z) / (e^z + e^-z)
+        *y = (posex - negex) / (posex + negex)
     }
 
     Ok(())
 }
 
-/// # Sigmoid w.r.t. X
-/// - Y: Output of the forward op
-/// - Gy: Gradient w.r.t. Y. 
-/// - Gx: Gradient w.r.t. X. 
 #[inline]
-pub fn sigmoid_wrt_x(
+pub fn tanh_wrt_x(
     y: &[f32],
     gy: &[f32],
     gx: &mut [f32]
@@ -41,7 +37,8 @@ pub fn sigmoid_wrt_x(
     }
 
     for (y, gy, gx) in izip!(y, gy, gx) {
-        *gx += *gy * (*y * (1. - *y));
+        // gx = gy * (1 - y^2)
+        *gx += *gy * (1. - *y * *y)
     }
 
     Ok(())

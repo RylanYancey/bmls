@@ -1,4 +1,8 @@
 
+use itertools::izip;
+use crate::error::BMLSError;
+use crate::error;
+
 /// # Adam Optimizer
 /// - G: Gradient w.r.t. W
 /// - V: Exponentialy weighted average of past gradients
@@ -7,33 +11,41 @@
 /// - Lr: Learning Rate
 /// - Beta1: Hyperparameter,
 /// - Beta2: Hyperparameter,
-/// - Len: Length of G, V, S, and W. 
 #[inline]
-pub unsafe fn adam(
-    g: *const f32,
-    v: *mut f32,
-    s: *mut f32,
-    w: *mut f32,
+pub fn adam(
+    g: &[f32],
+    v: &mut [f32],
+    s: &mut [f32],
+    w: &mut [f32],
     lr: f32,
     beta1: f32,
     beta2: f32,
-    len: usize,
-) {
-    for i in 0..len {
-        let g = g.add(i);
-        // assign V
-        let v = v.add(i);
-        *v = (*v * beta1) + (1. - beta1) * *g;
+) -> Result<(), BMLSError> {
+    if g.len() != v.len() {
+        return error::length_mismatch("G", g.len(), "V", v.len())
+    }
 
-        // assign S
-        let s = s.add(i);
-        *s = (*s * beta2) + (1. - beta2) * (*g * *g);
+    if v.len() != s.len() {
+        return error::length_mismatch("V", v.len(), "S", s.len())
+    }
+
+    if s.len() != w.len() {
+        return error::length_mismatch("S", s.len(), "W", w.len())
+    }
+
+    for (g, v, s, w) in izip!(g, v, s, w) {
+        // update V and S
+        *v = (*v * beta1) + (1. - beta1) * g;
+        *s = (*s * beta2) + (1. - beta2) * (g * g);
 
         // correct V and S
         *v /= 1. - beta1;
         *s /= 1. - beta2;
 
         // update the weights
-        *w.add(i) -= lr * (*v / (f32::sqrt(*s) + 0.00000000001))
+        // w -= lr * (v / (sqrt(s) + e))
+        *w -= lr * (*v / (f32::sqrt(*s) + 0.000000000000001));
     }
+
+    Ok(())   
 }

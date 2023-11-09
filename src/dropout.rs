@@ -1,50 +1,76 @@
 
+use itertools::izip;
+use crate::error::BMLSError;
+use crate::error;
+
 /// # Dropout Operator
 /// - X: Input
-/// - Y: Output
-/// - Len: Length of X & Y. 
+/// - R: Input to be filled with random values
+/// - Y: Output 
 /// - Rate: Dropout Rate
 #[inline]
-pub unsafe fn dropout(
-    x: *const f32,
-    y: *mut f32,
-    len: usize,
+pub fn dropout(
+    x: &[f32],
+    r: &mut [f32],
+    y: &mut [f32],
     rate: f32,
-) {
-    let factor = 1. / (1. - rate);
+) -> Result<(), BMLSError> {
+    if x.len() != y.len() {
+        return error::length_mismatch("X", x.len(), "Y", y.len())
+    }
 
-    for i in 0..len {
-        if fastrand::f32() < rate {
-            *y.add(i) = 0.0;
+    if r.len() != y.len() {
+        return error::length_mismatch("R", r.len(), "Y", y.len())
+    }
+
+    if rate > 1.0 || rate < 0.0 {
+        return error::invalid_dropout_rate(rate)
+    }
+
+    let factor = 1. / (1. - rate);
+    for (x, r, y) in izip!(x, r, y) {
+        *r = fastrand::f32();
+
+        if *r < rate {
+            *y = 0.0;
         } else {
-            *y.add(i) = *x.add(i) * factor;
+            *y = *x * factor
         }
     }
+
+    Ok(())
 }
 
 /// # Dropout w.r.t. X
-/// - Y: Output in the forward op
+/// - R: Random values generated in the forward op.
 /// - GY: Gradient w.r.t. Y
 /// - GX: Gradient w.r.t. X
-/// - len: Length of Y, GY, and GX. 
 /// - rate: Dropout Rate
-/// - Beta: scaling factor
 #[inline]
-pub unsafe fn dropout_wrt_x(
-    y: *const f32,
-    gy: *const f32,
-    gx: *mut f32,
-    len: usize,
+pub fn dropout_wrt_x(
+    r: &[f32],
+    gy: &[f32],
+    gx: &mut [f32],
     rate: f32,
-    beta: f32,
-) {
+) -> Result<(), BMLSError> {
+    if gx.len() != gy.len() {
+        return error::length_mismatch("GX", gx.len(), "GY", gy.len())
+    }
+
+    if r.len() != gy.len() {
+        return error::length_mismatch("R", r.len(), "GY", gy.len())
+    }
+
+    if rate > 1.0 || rate < 0.0 {
+        return error::invalid_dropout_rate(rate)
+    }
+
     let factor = 1. / (1. - rate);
-
-    for i in 0..len {
-        let gxptr = gx.add(i);
-
-        if *y.add(i) != 0.0 {
-            *gxptr += (*gxptr * beta) * *gy.add(i) * factor;
+    for (r, gy, gx) in izip!(r, gy, gx) {
+        if *r < rate {
+            *gx += *gy * factor
         }
     }
+
+    Ok(())
 }

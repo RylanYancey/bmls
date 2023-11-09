@@ -1,75 +1,102 @@
 
+use crate::error::BMLSError;
+use crate::error;
+
 #[inline]
-pub unsafe fn softmax(
-    x: *const f32,
-    y: *mut f32,
-    dim: [usize; 2]
-) {
+pub fn softmax(
+    x: &[f32],
+    y: &mut [f32],
+    dim: [usize; 2],
+) -> Result<(), BMLSError> {
     let rows = dim[0];
     let cols = dim[1];
 
+    let len = rows * cols;
+    if x.len() != len {
+        return error::length_mismatch("X", x.len(), "Dim", len);
+    }
+
+    if y.len() != len { 
+        return error::length_mismatch("Y", y.len(), "Dim", len);
+    }
+
     for i in 0..rows {
-        let x_row = x.add(i * cols);
-        let y_row = y.add(i * cols);
-        
-        // Find the maximum value in the row
-        let mut max_val = *x_row;
+        // the max value in the row.
+        // we will take e^x - max for stability.
+        // as input values become larger, they converge to NaN,
+        // however, negative numbers converge to 0. 
+        // by subtracting the max, whatever the max value is will
+        // output as 1, and everything else as 0, resulting in a 
+        // cleaner and better output. 
+        let mut max = x[i * cols];
         for j in 1..cols {
-            let val = *x_row.add(j);
-            if val > max_val {
-                max_val = val;
+            if x[i * cols + j] > max {
+                max = x[i * cols + j];
             }
         }
-        
-        // Compute the softmax for each element in the row
-        let mut sum_exp = 0.0;
+
+        // calculate the sum and assign e^x-max to y.
+        let mut sum = 0.0;
         for j in 0..cols {
-            let val = *x_row.add(j) - max_val; // Subtract max for numerical stability
-            let exp_val = val.exp();
-            *y_row.add(j) = exp_val;
-            sum_exp += exp_val;
+            // y = e^(x+max) (later on we will divide by sum)
+            y[i * cols + j] = f32::exp(x[i * cols + j] - max);
+            sum += y[i * cols + j];
         }
-        
-        // Normalize the row by dividing by the sum of exponentials
+
+        // divide the y value by the sum.
         for j in 0..cols {
-            *y_row.add(j) /= sum_exp;
+            y[i * cols + j] /=  sum;
         }
     }
+
+    Ok(())
 }
 
 #[inline]
-pub unsafe fn softmax_wrt_x(
-    y: *const f32,
-    gy: *const f32,
-    g1: *mut f32,
+pub fn softmax_wrt_x(
+    y: &[f32],
+    gy: &[f32],
+    g1: &mut [f32],
     dim: [usize; 2],
-    beta: f32,
-) {
+) -> Result<(), BMLSError> {
     let rows = dim[0];
     let cols = dim[1];
 
+    let len = rows * cols;
+    if y.len() != len {
+        return error::length_mismatch("Y", y.len(), "Dim", len);
+    }
+
+    if gy.len() != len {
+        return error::length_mismatch("GY", gy.len(), "Dim", len);
+    }
+
+    if g1.len() != len {
+        return error::length_mismatch("G1", g1.len(), "Dim", len);
+    }
+
     for i in 0..rows {
-        let y_row = y.add(i * cols);
-        let gy_row = gy.add(i * cols);
-        let g1_row = g1.add(i * cols);
-        
         for j in 0..cols {
-            let softmax_val = *y_row.add(j);
-            
+            let v = y[i * cols + j];
+
             let mut sum = 0.0;
             for k in 0..cols {
-                if j == k {
-                    sum += softmax_val * (1.0 - softmax_val);
+                if i == j {
+                    // when i and j are the same, gx is
+                    // gy * (y * (1. - y));
+                    sum += gy[i * cols + k] * (v * (1. - v));
                 } else {
-                    let other_softmax_val = *y_row.add(k);
-                    sum += -other_softmax_val * softmax_val;
+                    // when i and j are not the same, gx is
+                    // gy * -other_y*y
+                    sum += gy[i * cols + k] * (-y[i * cols + k] * v);
                 }
             }
-            
-            let gaij = g1_row.add(j);
-            *gaij = (*gaij * beta) + (sum * *gy_row.add(j));
+
+            g1[i * cols + j] += sum;
         }
     }
+
+    Ok(())
 }
 
 #[cfg(test)]
@@ -83,9 +110,7 @@ mod tests {
         let mut output_data: [f32; 6] = [0.0; 6];
         let dim = [2, 3]; // Example dimensions for a 2x3 matrix
     
-        unsafe {
-            softmax(input_data.as_ptr(), output_data.as_mut_ptr(), dim);
-        }
+        softmax(&input_data, &mut output_data, dim).unwrap();
     
         // Print the result
         for i in 0..dim[0] {
@@ -106,15 +131,12 @@ mod tests {
         let mut gradient_a: [f32; 6] = [0.0; 6];
         let dim = [2, 3]; // Example dimensions for a 2x3 matrix
     
-        unsafe {
             softmax_wrt_x(
-                softmax_output.as_ptr(),
-                gradient_b.as_ptr(),
-                gradient_a.as_mut_ptr(),
+                &softmax_output,
+                &gradient_b,
+                &mut gradient_a,
                 dim,
-                0.0,
-            );
-        }
+            ).unwrap();
     
         // Print the result
         for i in 0..dim[0] {

@@ -1,6 +1,8 @@
 
 use rayon::prelude::*;
 use super::{Ptr, PtrMut};
+use crate::error::BMLSError;
+use crate::error;
 
 /// # Im2col Operation
 /// - X: Input
@@ -15,25 +17,51 @@ use super::{Ptr, PtrMut};
 /// 
 /// Y Width: (((xh - fh + (padh.0 + padh.1)) / strideh) + 1) * (((xw - fw + (padw.0 + padw.1)) / stridew) + 1) * xn
 #[inline]
-pub unsafe fn im2col(
-    x: *const f32,
-    y: *mut f32,
+pub fn im2col(
+    x: &[f32],
+    y: &mut [f32],
     x_dim: [usize; 4],
     f_dim: [usize; 4],
     stride: [usize; 2],
     padh: [usize; 2],
     padw: [usize; 2],
-) {
+) -> Result<(), BMLSError> {
     let (nx, cx, hx, wx) = (x_dim[0], x_dim[1], x_dim[2], x_dim[3]);
     let (nf, cf, hf, wf) = (f_dim[0], f_dim[1], f_dim[2], f_dim[3]);
     let (strideh, stridew) = (stride[0], stride[1]);
     let hstart = ((hx - hf + (padh[0] + padh[1])) / strideh) + 1;
     let wstart = ((wx - wf + (padw[0] + padw[1])) / stridew) + 1;
     // size of the output Y
-    let (_, cy) = (hf * wf * cf, hstart * wstart * nx);
+    let (ny, cy) = (hf * wf * cf, hstart * wstart * nx);
 
-    let x = Ptr::new(x);
-    let y = PtrMut::new(y);
+    // ensure the length of slice X is the same as its shape
+    let xlen = x_dim[0]*x_dim[1]*x_dim[2]*x_dim[3];
+    if x.len() != xlen {
+        return error::length_mismatch("X", x.len(), "X_dim", xlen)
+    }
+
+    // ensure the length of slice Y is the same as its shape
+    let ylen = ny * cy;
+    if y.len() != ylen {
+        return error::length_mismatch("Y", y.len(), "Y_dim", ylen);
+    }
+
+    // the kernel dimensions cannot be 0 or greater than 
+    // the dimensions of the input + the padding.
+    if hf == 0 || hf >= (hx+padh[0]+padh[1]) || 
+       wf == 0 || wf >= (wx+padw[0]+padw[1]) ||
+       cf != cx || nf == 0
+    {
+        return error::invalid_kernel_dim(f_dim)
+    }
+
+    // strides must not be 0
+    if strideh == 0 || stridew == 0 {
+        return error::invalid_strides(strideh, stridew)
+    }
+
+    let x = Ptr::new(x.as_ptr());
+    let y = PtrMut::new(y.as_mut_ptr());
 
     (0..nx).into_par_iter().for_each(|n| {
         for h in 0..hstart {
@@ -76,7 +104,9 @@ pub unsafe fn im2col(
                 }
             }
         }
-    })
+    });
+
+    Ok(())
 }
 
 /// # Im2col w.r.t. X
@@ -87,22 +117,20 @@ pub unsafe fn im2col(
 /// - stride: H and W strides of the filter.
 /// - Padh: height padding
 /// - Padw: width padding
-/// - Beta: scaling factor
 /// 
 /// GY Height: fc * fh * fw
 /// 
 /// GY Width: (((xh - fh + (padh.0 + padh.1)) / strideh) + 1) * (((xw - fw + (padw.0 + padw.1)) / stridew) + 1) * xn
 #[inline]
-pub unsafe fn im2col_wrt_x(
-    gy: *const f32,
-    gx: *mut f32,
+pub fn im2col_wrt_x(
+    gy: &[f32],
+    gx: &mut [f32],
     x_dim: [usize; 4],
     f_dim: [usize; 4],
     stride: [usize; 2],
     padh: [usize; 2],
     padw: [usize; 2],
-    beta: f32,
-) {
+) -> Result<(), BMLSError> {
     let (nx, cx, hx, wx) = (x_dim[0], x_dim[1], x_dim[2], x_dim[3]);
     let (nf, cf, hf, wf) = (f_dim[0], f_dim[1], f_dim[2], f_dim[3]);
     let (strideh, stridew) = (stride[0], stride[1]);
@@ -111,12 +139,34 @@ pub unsafe fn im2col_wrt_x(
     // size of the output Y
     let (_, cy) = (hf * wf * cf, hstart * wstart * nx);
 
-    for i in 0..(nx * cx * hx * wx) {
-        *gx.add(i) *= beta;
+    // ensure the length of slice X is the same as its shape
+    let xlen = x_dim[0]*x_dim[1]*x_dim[2]*x_dim[3];
+    if gx.len() != xlen {
+        return error::length_mismatch("GX", gx.len(), "X_dim", xlen)
     }
 
-    let gy = Ptr::new(gy);
-    let gx = PtrMut::new(gx);
+    // ensure the length of slice Y is the same as its shape
+    let ylen = nx * cy;
+    if gy.len() != ylen {
+        return error::length_mismatch("GY", gy.len(), "GY_dim", ylen);
+    }
+
+    // the kernel dimensions cannot be 0 or greater than 
+    // the dimensions of the input + the padding.
+    if hf == 0 || hf >= (hx+padh[0]+padh[1]) || 
+       wf == 0 || wf >= (wx+padw[0]+padw[1]) ||
+       cf != cx || nf == 0
+    {
+        return error::invalid_kernel_dim(f_dim)
+    }
+
+    // strides must not be 0
+    if strideh == 0 || stridew == 0 {
+        return error::invalid_strides(strideh, stridew)
+    }
+
+    let gy = Ptr::new(gy.as_ptr());
+    let gx = PtrMut::new(gx.as_mut_ptr());
 
     (0..nx).into_par_iter().for_each(|n| {
         for h in 0..hstart {
@@ -150,7 +200,9 @@ pub unsafe fn im2col_wrt_x(
                 }
             }
         }
-    })
+    });
+
+    Ok(())
 }
 
 #[cfg(test)]
@@ -162,17 +214,15 @@ mod tests {
         // 12x9
         let mut y = vec![0.0; 12 * 9];
 
-        unsafe {
             super::im2col(
-                x.as_ptr(),
-                y.as_mut_ptr(),
+                &x,
+                &mut y,
                 [1, 3, 4, 4],
                 [1, 3, 2, 2],
                 [1, 1],
                 [0, 0],
                 [0, 0],
-            );
-        }
+            ).unwrap();
 
         for row in 0..12 {
             println!("");

@@ -18,29 +18,29 @@ pub use avg_pool::{
 mod axis_add;
 pub use axis_add::{
     axis_add,
-    axis_add_wrt_a,
-    axis_add_wrt_b,
+    axis_add_wrt_x1,
+    axis_add_wrt_x2,
 };
 
 mod axis_div;
 pub use axis_div::{
     axis_div,
-    axis_div_wrt_a,
-    axis_div_wrt_b,
+    axis_div_wrt_x1,
+    axis_div_wrt_x2,
 };
 
 mod axis_mul;
 pub use axis_mul::{
     axis_mul,
-    axis_mul_wrt_a,
-    axis_mul_wrt_b,
+    axis_mul_wrt_x1,
+    axis_mul_wrt_x2,
 };
 
 mod axis_sub;
 pub use axis_sub::{
     axis_sub,
-    axis_sub_wrt_a,
-    axis_sub_wrt_b,
+    axis_sub_wrt_x1,
+    axis_sub_wrt_x2,
 };
 
 mod div;
@@ -55,6 +55,8 @@ pub use dropout::{
     dropout,
     dropout_wrt_x,
 };  
+
+mod error;
 
 mod im2col;
 pub use im2col::{
@@ -73,7 +75,6 @@ pub use matmul::{
     matmul,
     matmul_wrt_a,
     matmul_wrt_b,
-    transpose,
 };
 
 mod max_pool;
@@ -136,4 +137,10 @@ pub use sub::{
     sub,
     sub_wrt_x1,
     sub_wrt_x2,
+};
+
+mod tanh;
+pub use tanh::{
+    tanh,
+    tanh_wrt_x,
 };

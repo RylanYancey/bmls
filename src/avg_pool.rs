@@ -1,6 +1,8 @@
 
 use rayon::prelude::*;
 use super::{Ptr, PtrMut};
+use crate::error::BMLSError;
+use crate::error;
 
 /// # Avg Pooling Operation
 /// - A: Input
@@ -13,15 +15,15 @@ use super::{Ptr, PtrMut};
 /// B Should have the height: ((input_rows - kernel_rows + (padh0 + padh1)) / stride_rows) + 1
 /// B should have the width: ((input_cols - kernel_cols + (padw0 + padw1)) / stride_cols) + 1
 #[inline]
-pub unsafe fn avg_pool(
-    x: *const f32,
-    y: *mut f32,
+pub fn avg_pool(
+    x: &[f32],
+    y: &mut [f32],
     x_dim: [usize; 4],
     stride: [usize; 2],
     kernel: [usize; 2],
     padh: [usize; 2],
     padw: [usize; 2],
-) {
+) -> Result<(), BMLSError> {
     let (strideh, stridew) = (stride[0], stride[1]);
     let (kernelh, kernelw) = (kernel[0], kernel[1]);
     let (xn, xc, xh, xw) = (x_dim[0], x_dim[1], x_dim[2], x_dim[3]);
@@ -33,8 +35,33 @@ pub unsafe fn avg_pool(
 
     let k_len = kernelh * kernelw;
 
-    let x = Ptr::new(x);
-    let y = PtrMut::new(y);
+    // ensure the length of slice X is the same as its shape
+    let xlen = x_dim[0]*x_dim[1]*x_dim[2]*x_dim[3];
+    if x.len() != xlen {
+        return error::length_mismatch("X", x.len(), "X_dim", xlen)
+    }
+
+    // ensure the length of slice Y is the same as its shape
+    let ylen = xn * yc * yh * yw;
+    if y.len() != ylen {
+        return error::length_mismatch("Y", y.len(), "Y_dim", ylen);
+    }
+
+    // the kernel dimensions cannot be 0 or greater than 
+    // the dimensions of the input + the padding.
+    if kernel[0] == 0 || kernel[0] >= (xh+padh[0]+padh[1]) || 
+       kernel[1] == 0 || kernel[1] >= (xw+padw[0]+padw[1]) 
+    {
+        return error::invalid_kernel_dim([1, 1, kernelh, kernelw])
+    }
+
+    // strides must not be 0
+    if strideh == 0 || stridew == 0 {
+        return error::invalid_strides(strideh, stridew)
+    }
+
+    let x = Ptr::new(x.as_ptr());
+    let y = PtrMut::new(y.as_mut_ptr());
 
     (0..xn).into_par_iter().for_each(|n| {
         for c in 0..xc {
@@ -60,31 +87,30 @@ pub unsafe fn avg_pool(
                 }
             }
         }
-    })
+    });
+
+    Ok(())
 }
 
 /// Avg Pooling w.r.t. X
-/// - GB: Output Gradient
-/// - GA: Input Gradient
-/// - Dim: Dimensions of A
+/// - GY: Output Gradient
+/// - GX: Input Gradient
+/// - XDim: Dimensions of X
 /// - Strides: Distance between patches
 /// - Kernel: Size of the Kernel
-/// - Dilations: Amount to dilate. Cannot be Zero.
 /// 
-/// GB Should have the height: ((input_rows - kernel_rows + (padh0 + padh1)) / stride_rows) + 1
-/// GB should have the width: ((input_cols - kernel_cols + (padw0 + padw1)) / stride_cols) + 1
-/// 
-/// GA is expected to be zeroed. 
+/// GY Should have the height: ((input_rows - kernel_rows + (padh0 + padh1)) / stride_rows) + 1
+/// GY should have the width: ((input_cols - kernel_cols + (padw0 + padw1)) / stride_cols) + 1
 #[inline]
-pub unsafe fn avg_pool_wrt_x(
-    gy: *const f32,
-    gx: *mut f32,
+pub fn avg_pool_wrt_x(
+    gy: &[f32],
+    gx: &mut [f32],
     x_dim: [usize; 4],
     stride: [usize; 2],
     kernel: [usize; 2],
     padh: [usize; 2],
     padw: [usize; 2],
-) {
+) -> Result<(), BMLSError> {
     let (strideh, stridew) = (stride[0], stride[1]);
     let (kernelh, kernelw) = (kernel[0], kernel[1]);
     let (xn, xc, xh, xw) = (x_dim[0], x_dim[1], x_dim[2], x_dim[3]);
@@ -96,8 +122,33 @@ pub unsafe fn avg_pool_wrt_x(
 
     let k_len = kernelh * kernelw;
 
-    let gy = Ptr::new(gy);
-    let gx = PtrMut::new(gx);
+    // ensure the length of slice X is the same as its shape
+    let xlen = x_dim[0]*x_dim[1]*x_dim[2]*x_dim[3];
+    if gx.len() != xlen {
+        return error::length_mismatch("GX", gx.len(), "GX_dim", xlen)
+    }
+
+    // ensure the length of slice Y is the same as its shape
+    let ylen = xn * yc * yh * yw;
+    if gy.len() != ylen {
+        return error::length_mismatch("GY", gy.len(), "GY_dim", ylen);
+    }
+
+    // the kernel dimensions cannot be 0 or greater than 
+    // the dimensions of the input + the padding.
+    if kernel[0] == 0 || kernel[0] >= (xh+padh[0]+padh[1]) || 
+       kernel[1] == 0 || kernel[1] >= (xw+padw[0]+padw[1]) 
+    {
+        return error::invalid_kernel_dim([1, 1, kernelh, kernelw])
+    }
+
+    // strides must not be 0
+    if strideh == 0 || stridew == 0 {
+        return error::invalid_strides(strideh, stridew)
+    }
+
+    let gy = Ptr::new(gy.as_ptr());
+    let gx = PtrMut::new(gx.as_mut_ptr());
 
     (0..xn).into_par_iter().for_each(|n| {
         for c in 0..xc {
@@ -121,7 +172,9 @@ pub unsafe fn avg_pool_wrt_x(
                 }
             }
         }
-    })
+    });
+
+    Ok(())
 }
 
 #[cfg(test)]
@@ -142,17 +195,15 @@ mod tests {
         // Create a vector to hold the pooled values
         let mut pooled_output: Vec<f32> = vec![0.0; 25];
     
-        unsafe {
             avg_pool(
-                input.as_ptr(),
-                pooled_output.as_mut_ptr(),
+                &input,
+                &mut pooled_output,
                 [1, 1, 4, 4],
                 [1, 1],
                 [2, 2],
                 [1, 1],
                 [1, 1],
-            );
-        }
+            ).unwrap();
     
         for i in 0..5 {
             println!("");
@@ -173,17 +224,15 @@ mod tests {
         // Create a vector to hold the gradient with respect to the input (ga)
         let mut gradient_input: Vec<f32> = vec![1.0; 16]; // 4x4 input matrix
     
-        unsafe {
             avg_pool_wrt_x(
-                gradient_output.as_ptr(),
-                gradient_input.as_mut_ptr(),
+                &gradient_output,
+                &mut gradient_input,
                 [1, 1, 4, 4],
                 [2, 2],
                 [1, 1],
                 [0, 0],
                 [0, 0],
-            );
-        }
+            ).unwrap();
     
         for i in 0..4 {
             println!("");

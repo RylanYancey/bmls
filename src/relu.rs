@@ -1,34 +1,47 @@
 
+use itertools::izip;
+use crate::error::BMLSError;
+use crate::error;
+
 #[inline]
-pub unsafe fn relu(
-    x: *const f32,
-    y: *mut f32,
-    len: usize,
-) {
-    for i in 0..len {
-        let xptr = x.add(i);
-        if *xptr > 0.0 {
-            *y.add(i) = *xptr;
+pub fn relu(
+    x: &[f32],
+    y: &mut [f32]
+) -> Result<(), BMLSError> {
+    if x.len() != y.len() {
+        return error::length_mismatch("X", x.len(), "Y", y.len())
+    }
+
+    for (x, y) in izip!(x, y) {
+        if *x > 0.0 {
+            *y = *x;
         } else {
-            *y.add(i) = 0.;
+            *y = 0.;
         }
     }
+
+    Ok(())
 }
 
 #[inline]
-pub unsafe fn relu_wrt_x(
-    x: *const f32,
-    gy: *const f32,
-    g1: *mut f32,
-    len: usize,
-    beta: f32,
-) {
-    for i in 0..len {
-        let g1ptr = g1.add(i);
-        *g1ptr *= beta;
+pub fn relu_wrt_x(
+    x: &[f32],
+    gy: &[f32],
+    g1: &mut [f32],
+) -> Result<(), BMLSError> {
+    if x.len() != g1.len() {
+        return error::length_mismatch("X", x.len(), "G1", g1.len())
+    }    
 
-        if *x.add(i) > 0. {
-            *g1ptr += *gy.add(i)
-        } 
+    if gy.len() != g1.len() {
+        return error::length_mismatch("GY", gy.len(), "G1", g1.len())
     }
+
+    for (x, gy, g1) in izip!(x, gy, g1) {
+        if *x > 0.0 {
+            *g1 += *gy;
+        }
+    }
+
+    Ok(())
 }
