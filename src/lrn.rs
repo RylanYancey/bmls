@@ -1,8 +1,8 @@
 
 use rayon::prelude::*;
-use super::{Ptr, PtrMut};
 use crate::error::BMLSError;
 use crate::error;
+use crate::Ptr;
 
 /// # Local Response Normalization
 /// - X: Input
@@ -45,8 +45,8 @@ pub fn lrn(
         return error::invalid_lrn_size(n_size);
     }
 
-    let x = Ptr::new(x.as_ptr());
-    let y = PtrMut::new(y.as_mut_ptr());
+    let x = Ptr::new(x);
+    let y = Ptr::new(y);
 
     (0..nx).into_par_iter().for_each(|n| {
         for c in 0..cx {
@@ -61,11 +61,11 @@ pub fn lrn(
 
                         for ic in citer.clone() {
                             let xi = xi + ic * hx * wx + h * wx + w;
-                            let v = *x.add(xi);
+                            let v = x.get_mut()[xi];
                             sum += v * v;
                         }
 
-                        *y.add(yi) = *x.add(yi) / (k + (alpha * f32::powf(sum, beta)));
+                        y.get_mut()[yi] = x.get_mut()[yi] / (k + (alpha * f32::powf(sum, beta)));
                     }
                 }
             } else {
@@ -82,12 +82,12 @@ pub fn lrn(
                         for ih in hiter.clone() {
                             for iw in witer.clone() {
                                 let xi = xi + ih * wx + iw;
-                                let v = *x.add(xi);
+                                let v = x.get_mut()[xi];
                                 sum += v * v;
                             }
                         }
 
-                        *y.add(yi) = *x.add(yi) / (k + (alpha * f32::powf(sum, beta)));
+                        y.get_mut()[yi] = x.get_mut()[yi] / (k + (alpha * f32::powf(sum, beta)));
                     }
                 }
             }

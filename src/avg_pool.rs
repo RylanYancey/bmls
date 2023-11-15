@@ -1,8 +1,8 @@
 
 use rayon::prelude::*;
-use super::{Ptr, PtrMut};
 use crate::error::BMLSError;
 use crate::error;
+use crate::Ptr;
 
 /// # Avg Pooling Operation
 /// - A: Input
@@ -60,8 +60,8 @@ pub fn avg_pool(
         return error::invalid_strides(strideh, stridew)
     }
 
-    let x = Ptr::new(x.as_ptr());
-    let y = PtrMut::new(y.as_mut_ptr());
+    let x = Ptr::new(x);
+    let y = Ptr::new(y);
 
     (0..xn).into_par_iter().for_each(|n| {
         for c in 0..xc {
@@ -80,10 +80,10 @@ pub fn avg_pool(
                                 continue;
                             }
                             let xi = xi + xrow as usize * xw + xcol as usize; 
-                            sum += *x.add(xi);
+                            sum += x.get_mut()[xi];
                         }
                     }
-                    *y.add(yi) = sum / k_len as f32;
+                    y.get_mut()[yi] = sum / k_len as f32;
                 }
             }
         }
@@ -147,8 +147,8 @@ pub fn avg_pool_wrt_x(
         return error::invalid_strides(strideh, stridew)
     }
 
-    let gy = Ptr::new(gy.as_ptr());
-    let gx = PtrMut::new(gx.as_mut_ptr());
+    let gy = Ptr::new(gy);
+    let gx = Ptr::new(gx);
 
     (0..xn).into_par_iter().for_each(|n| {
         for c in 0..xc {
@@ -166,7 +166,7 @@ pub fn avg_pool_wrt_x(
                                 continue;
                             }
                             let xi = xi + xrow as usize * xw + xcol as usize; 
-                            *gx.add(xi) += *gy.add(yi) / k_len as f32;
+                            gx.get_mut()[xi] += gy.get_mut()[yi] / k_len as f32;
                         }
                     }
                 }

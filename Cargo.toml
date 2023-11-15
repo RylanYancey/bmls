@@ -12,27 +12,3 @@ thiserror = "1.0.50"
 
 [dev-dependencies]
 criterion = { version = "0.4", features = ["html_reports"] }
-
-[[bench]]
-name = "reduce_sum"
-harness = false
-
-[[bench]]
-name = "reduce_mean"
-harness = false
-
-[[bench]]
-name = "lrn"
-harness = false
-
-[[bench]]
-name = "im2col"
-harness = false
-
-[[bench]]
-name = "avg_pool"
-harness = false
-
-[[bench]]
-name = "sigmoid"
-harness = false

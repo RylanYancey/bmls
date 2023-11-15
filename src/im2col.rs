@@ -1,8 +1,8 @@
 
 use rayon::prelude::*;
-use super::{Ptr, PtrMut};
 use crate::error::BMLSError;
 use crate::error;
+use crate::Ptr;
 
 /// # Im2col Operation
 /// - X: Input
@@ -60,8 +60,8 @@ pub fn im2col(
         return error::invalid_strides(strideh, stridew)
     }
 
-    let x = Ptr::new(x.as_ptr());
-    let y = PtrMut::new(y.as_mut_ptr());
+    let x = Ptr::new(x);
+    let y = Ptr::new(y);
 
     (0..nx).into_par_iter().for_each(|n| {
         for h in 0..hstart {
@@ -91,13 +91,13 @@ pub fn im2col(
                                 let yi = row * cy + col;
 
                                 if xrow >= hx as isize || xrow < 0 || xcol >= wx as isize || xcol < 0 {
-                                    *y.add(yi) = 0.0;
+                                    y.get_mut()[yi] = 0.0;
                                     continue;
                                 }
 
                                 let xi = xi + xrow as usize * wx + xcol as usize; 
 
-                                *y.add(yi) = *x.add(xi);
+                                y.get_mut()[yi] = x.get_mut()[xi];
                             }
                         }
                     }
@@ -165,8 +165,8 @@ pub fn im2col_wrt_x(
         return error::invalid_strides(strideh, stridew)
     }
 
-    let gy = Ptr::new(gy.as_ptr());
-    let gx = PtrMut::new(gx.as_mut_ptr());
+    let gy = Ptr::new(gy);
+    let gx = Ptr::new(gx);
 
     (0..nx).into_par_iter().for_each(|n| {
         for h in 0..hstart {
@@ -193,7 +193,7 @@ pub fn im2col_wrt_x(
 
                                 let xi = xi + xrow as usize * wx + xcol as usize; 
 
-                                *gx.add(xi) += *gy.add(yi);
+                                gx.get_mut()[xi] += gy.get_mut()[yi];
                             }
                         }
                     }

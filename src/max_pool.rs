@@ -1,8 +1,8 @@
 
 use rayon::prelude::*;
-use super::{Ptr, PtrMut};
 use crate::error::BMLSError;
 use crate::error;
+use crate::Ptr;
 
 /// # Max Pool Operation
 /// - X: Input
@@ -67,9 +67,9 @@ pub fn max_pool(
         return error::invalid_strides(strideh, stridew)
     }
 
-    let x = Ptr::new(x.as_ptr());
-    let y = PtrMut::new(y.as_mut_ptr());
-    let i = PtrMut::new(i.as_mut_ptr());
+    let x = Ptr::new(x);
+    let y = Ptr::new(y);
+    let i = Ptr::new(i);
 
     (0..xn).into_par_iter().for_each(|n| {
         for c in 0..xc {
@@ -94,7 +94,7 @@ pub fn max_pool(
                             }
 
                             let xi = n * xc * xh * xw + c * xh * xw + xrow as usize * xw + xcol as usize; 
-                            let val = *x.add(xi);
+                            let val = x.get_mut()[xi];
                             if val > max {
                                 max = val;
                                 index = xi;
@@ -103,8 +103,8 @@ pub fn max_pool(
                     }
 
                     let yi = n * yc * yh * yw + c * yh * yw + h * yw + w;
-                    *y.add(yi) = max;
-                    *i.add(yi) = index;
+                    y.get_mut()[yi] = max;
+                    i.get_mut()[yi] = index;
                 }
             }
         }
