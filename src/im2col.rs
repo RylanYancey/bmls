@@ -66,39 +66,26 @@ pub fn im2col(
     (0..nx).into_par_iter().for_each(|n| {
         for h in 0..hstart {
             for w in 0..wstart {
-                // 4% improvement swapping
-                // the order of m and c. 
-                for m in 0..nf {
-                    // moved from inner loop to here
-                    let col = (h * wstart + w) * (m + 1);
-                    for c in 0..cx {
-                        // moving index calculations out of
-                        // inner loop rendered 30% improvement.
-                        let xrow = h * strideh;
-                        let xcol = w * stridew;
-                        let row = wf * hf * c;
-                        let xi =  n * cx * hx * wx + c * hx * wx;
-
-                        // swapping the order of the kernel iteration
-                        // rendererd a 16% improvement.
-                        for kw in 0..wf {
-                            for kh in 0..hf {
-
-                                let xrow = (xrow + kh) as isize - padh[0] as isize;
-                                let xcol = (xcol + kw) as isize - padw[0] as isize;
-
-                                let row = (kh * wf + kw) + row;
-                                let yi = row * cy + col;
-
-                                if xrow >= hx as isize || xrow < 0 || xcol >= wx as isize || xcol < 0 {
-                                    y.get_mut()[yi] = 0.0;
-                                    continue;
-                                }
-
-                                let xi = xi + xrow as usize * wx + xcol as usize; 
-
-                                y.get_mut()[yi] = x.get_mut()[xi];
+                // the column of Y we are in
+                let col = (h * wstart + w) * (n+1);
+                for c in 0..cx {
+                    let xrow = h * strideh;
+                    let xcol = w * stridew;
+                    let row = wf * hf * c;
+                    let xi = n * cx * hx * wx + c * hx * wx;
+                    for kw in 0..wf {
+                        for kh in 0..hf {
+                            let xrow = (xrow + kh) as isize - padh[0] as isize;
+                            let xcol = (xcol + kw) as isize - padw[0] as isize;
+                            let row = (kh * wf + kw) + row;
+                            let yi = row * cy + col;
+                            if xrow >= hx as isize || xrow < 0 || xcol >= wx as isize || xcol < 0 {
+                                y.get_mut()[yi] = 0.0;
+                                continue;
                             }
+                            // the index of 
+                            let xi = xi + xrow as usize * wx + xcol as usize; 
+                            y.get_mut()[yi] = x.get_mut()[xi];
                         }
                     }
                 }
@@ -137,7 +124,7 @@ pub fn im2col_wrt_x(
     let hstart = ((hx - hf + (padh[0] + padh[1])) / strideh) + 1;
     let wstart = ((wx - wf + (padw[0] + padw[1])) / stridew) + 1;
     // size of the output Y
-    let (_, cy) = (hf * wf * cf, hstart * wstart * nx);
+    let (ny, cy) = (hf * wf * cf, hstart * wstart * nx);
 
     // ensure the length of slice X is the same as its shape
     let xlen = x_dim[0]*x_dim[1]*x_dim[2]*x_dim[3];
@@ -146,7 +133,7 @@ pub fn im2col_wrt_x(
     }
 
     // ensure the length of slice Y is the same as its shape
-    let ylen = nx * cy;
+    let ylen = ny * cy;
     if gy.len() != ylen {
         return error::length_mismatch("GY", gy.len(), "GY_dim", ylen);
     }
@@ -171,30 +158,29 @@ pub fn im2col_wrt_x(
     (0..nx).into_par_iter().for_each(|n| {
         for h in 0..hstart {
             for w in 0..wstart {
-                for m in 0..nf {
-                    let col = (h * wstart + w) * (m + 1);
-                    for c in 0..cx {
-                        let xrow = h * strideh;
-                        let xcol = w * stridew;
-                        let row = wf * hf * c;
-                        let xi =  n * cx * hx * wx + c * hx * wx;
-                        for kh in 0..hf {
-                            for kw in 0..wf {
+                // the column of Y we are in
+                let col = (h * wstart + w) * (n + 1);
+                for c in 0..cx {
+                    let xrow = h * strideh;
+                    let xcol = w * stridew;
+                    // the row of Y we are in based on the channel.
+                    let row = wf * hf * c;
+                    let xi = n * cx * hx * wx + c * hx * wx;
+                    for kh in 0..hf {
+                        for kw in 0..wf {
 
-                                let xrow = (xrow + kh) as isize - padh[0] as isize;
-                                let xcol = (xcol + kw) as isize - padw[0] as isize;
+                            let xrow = (xrow + kh) as isize - padh[0] as isize;
+                            let xcol = (xcol + kw) as isize - padw[0] as isize;
 
-                                let row = (kh * wf + kw) + row;
-                                let yi = row * cy + col;
+                            // Adjust the row of Y we are in
+                            let row = (kh * wf + kw) + row;
+                            let yi = row * cy + col;
 
-                                if xrow >= hx as isize || xrow < 0 || xcol >= wx as isize || xcol < 0 {
-                                    continue;
-                                }
-
-                                let xi = xi + xrow as usize * wx + xcol as usize; 
-
-                                gx.get_mut()[xi] += gy.get_mut()[yi];
+                            if xrow >= hx as isize || xrow < 0 || xcol >= wx as isize || xcol < 0 {
+                                continue;
                             }
+                            let xi = xi + xrow as usize * wx + xcol as usize; 
+                            gx.get_mut()[xi] += gy.get_mut()[yi];
                         }
                     }
                 }

@@ -43,6 +43,11 @@ pub use axis_sub::{
     axis_sub_wrt_x2,
 };
 
+mod cross_entropy;
+pub use cross_entropy::{
+    
+};
+
 mod div;
 pub use div::{
     div,
