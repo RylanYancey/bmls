@@ -44,9 +44,7 @@ pub use axis_sub::{
 };
 
 mod cross_entropy;
-pub use cross_entropy::{
-    
-};
+pub use cross_entropy::cross_entropy;
 
 mod div;
 pub use div::{
