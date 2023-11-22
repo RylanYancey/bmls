@@ -40,11 +40,10 @@ pub fn mse(
 
         for j in 0..cols {
             let index = i * cols + j;
-            let predicted = p[index];
-            let target = t[index];
+            let loss = p[index] - t[index];
 
-            sum += f32::powi(predicted - target, 2);
-            g[index] = 2.0 * (predicted - target);
+            sum += loss*loss;
+            g[index] = 2.0 * loss;
         }
 
         e[i] = sum / cols as f32

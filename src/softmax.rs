@@ -27,7 +27,7 @@ pub fn softmax(
         // however, negative numbers converge to 0. 
         // by subtracting the max, whatever the max value is will
         // output as 1, and everything else as 0, resulting in a 
-        // cleaner and better output. 
+        // cleaner and more stable output.
         let mut max = x[i * cols];
         for j in 1..cols {
             if x[i * cols + j] > max {
@@ -45,7 +45,7 @@ pub fn softmax(
 
         // divide the y value by the sum.
         for j in 0..cols {
-            y[i * cols + j] /=  sum;
+            y[i * cols + j] /= sum;
         }
     }
 
