@@ -7,7 +7,7 @@ description = "Basic Machine Learning Subsystems"
 documentation = "https://github.com/RylanYancey/bmls/tree/main/docs"
 readme = "README.md"
 repository = "https://github.com/RylanYancey/bmls"
-license = "MIT or Apache"
+license = "MIT or Apache-2.0"
 keywords = ["ml", "math", "algorithms", "statistics", "machine-learning"]
 categories = ["algorithms", "mathematics"]
 
