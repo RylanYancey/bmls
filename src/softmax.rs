@@ -28,18 +28,18 @@ pub fn softmax(
         // by subtracting the max, whatever the max value is will
         // output as 1, and everything else as 0, resulting in a 
         // cleaner and more stable output.
-        let mut max = x[i * cols];
-        for j in 1..cols {
-            if x[i * cols + j] > max {
-                max = x[i * cols + j];
-            }
-        }
+        // let mut max = x[i * cols];
+        // for j in 1..cols {
+        //     if x[i * cols + j] > max {
+        //         max = x[i * cols + j];
+        //     }
+        // }
 
         // calculate the sum and assign e^x-max to y.
         let mut sum = 0.0;
         for j in 0..cols {
             // y = e^(x+max) (later on we will divide by sum)
-            y[i * cols + j] = f32::exp(x[i * cols + j] - max);
+            y[i * cols + j] = f32::exp(x[i * cols + j]);
             sum += y[i * cols + j];
         }
 

@@ -1,7 +1,15 @@
 [package]
 name = "bmls"
-version = "0.1.0"
+version = "1.0.0"
 edition = "2021"
+authors = ["Rylan Yancey"]
+description = "Basic Machine Learning Subsystems"
+documentation = "https://github.com/RylanYancey/bmls/tree/main/docs"
+readme = "README.md"
+repository = "https://github.com/RylanYancey/bmls"
+license = "MIT or Apache"
+keywords = ["ml", "math", "algorithms", "statistics", "machine-learning"]
+categories = ["algorithms", "mathematics"]
 
 [dependencies]
 fastrand = "2.0.1"
