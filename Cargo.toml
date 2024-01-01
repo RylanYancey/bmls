@@ -1,6 +1,6 @@
 [package]
 name = "bmls"
-version = "1.0.0"
+version = "1.1.1"
 edition = "2021"
 authors = ["Rylan Yancey"]
 description = "Basic Machine Learning Subsystems"
@@ -19,9 +19,9 @@ ndarray = []
 fastrand = "2.0.1"
 itertools = "0.11.0"
 matrixmultiply = "0.3.8"
+ndarray = "0.15.6"
 rayon = "1.8.0"
 thiserror = "1.0.50"
-ndarray = { workspace = true }
 
 [dev-dependencies]
 criterion = { version = "0.4", features = ["html_reports"] }
