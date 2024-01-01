@@ -42,7 +42,7 @@ pub fn axis_mul(
 }
 
 #[inline]
-pub unsafe fn axis_mul_wrt_x1(
+pub fn axis_mul_wrt_x1(
     x2: &[f32],
     gy: &[f32],
     g1: &mut [f32],
@@ -82,7 +82,7 @@ pub unsafe fn axis_mul_wrt_x1(
 
 
 #[inline]
-pub unsafe fn axis_mul_wrt_x2(
+pub fn axis_mul_wrt_x2(
     x1: &[f32],
     gy: &[f32],
     g2: &mut [f32],

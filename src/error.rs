@@ -15,6 +15,11 @@ pub enum BMLSError {
     InvalidDropoutRate(f32),
     #[error("LRN N_Size must not be zero.")]
     InvalidLRNSize(usize),
+    #[error("The '0'(or N) dimension of {0} must match the '1'(or C) dimension of {2}. ({0} len: {1}) ({2} len: {3})")]
+    Col2ImChannelMismatch(String, usize, String, usize),
+    #[cfg(feature = "ndarray")]
+    #[error("Failed to convert Array4 with name {0} to slice!")]
+    NdarraySliceError(String),
 }
 
 pub(crate) fn length_mismatch(a_name: &str, a_len: usize, b_name: &str, b_len: usize) -> Result<(), BMLSError> {
@@ -42,4 +47,8 @@ pub(crate) fn invalid_dropout_rate(rate: f32) -> Result<(), BMLSError> {
 
 pub(crate) fn invalid_lrn_size(size: usize) -> Result<(), BMLSError> {
     Err(BMLSError::InvalidLRNSize(size))
+}
+
+pub(crate) fn col2im_channel_mismatch(a_name: &str, a_len: usize, b_name: &str, b_len: usize) -> Result<(), BMLSError> {
+    Err(BMLSError::Col2ImChannelMismatch(a_name.to_owned(), a_len, b_name.to_owned(), b_len))
 }

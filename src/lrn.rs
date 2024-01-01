@@ -98,10 +98,10 @@ pub fn lrn(
 }
 
 #[inline]
-pub unsafe fn lrn_wrt_x(
+pub fn lrn_wrt_x(
 
-) {
-    
+) -> Result<(), BMLSError> {
+    todo!()
 }
 
 #[cfg(test)]

@@ -10,7 +10,7 @@ use crate::error;
 /// - Dim: Dimensions of C
 /// - Axis: Axis to iterate
 #[inline]
-pub unsafe fn axis_sub(
+pub fn axis_sub(
     x1: &[f32],
     x2: &[f32],
     y: &mut [f32],
@@ -66,7 +66,7 @@ pub fn axis_sub_wrt_x1(
 }
 
 #[inline]
-pub unsafe fn axis_sub_wrt_x2(
+pub fn axis_sub_wrt_x2(
     gy: &[f32],
     g2: &mut [f32],
     dim: [usize; 4],

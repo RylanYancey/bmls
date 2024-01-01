@@ -12,3 +12,4 @@ docs/*.out
 docs/*.run.xml
 docs/*.synctex.gx
 docs/*.toc
+Cargo.lock
