@@ -51,7 +51,7 @@ pub fn lrn(
     (0..nx).into_par_iter().for_each(|n| {
         for c in 0..cx {
             if inter {
-                let citer = (isize::max(0, c as isize - n_size as isize) as usize)..=usize::min(cx, c + n_size);
+                let citer = (isize::max(0, c as isize - n_size as isize) as usize)..usize::min(cx, c + n_size);
                 let yi = n * cx * hx * wx + c * hx * wx;
                 let xi = n * cx * hx * wx;
                 for h in 0..hx {
@@ -70,14 +70,14 @@ pub fn lrn(
                 }
             } else {
                 for h in 0..hx {
-                    let hiter = (isize::max(0, h as isize - n_size as isize) as usize)..=usize::min(hx, h + n_size);
+                    let hiter = (isize::max(0, h as isize - n_size as isize) as usize)..usize::min(hx, h + n_size);
                     let yi = n * cx * hx * wx + c * hx * wx;
                     let xi = yi;
                     for w in 0..wx {
                         let yi = yi + h * wx + w;
                         let mut sum = 0.0;
 
-                        let witer = (isize::max(0, w as isize - n_size as isize) as usize)..=usize::min(wx, w + n_size);
+                        let witer = (isize::max(0, w as isize - n_size as isize) as usize)..usize::min(wx, w + n_size);
 
                         for ih in hiter.clone() {
                             for iw in witer.clone() {
